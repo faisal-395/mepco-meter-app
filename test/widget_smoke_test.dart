@@ -45,7 +45,7 @@ void main() {
         ),
       );
       await settle(tester);
-      expect(find.text('New report'), findsWidgets);
+      expect(find.text('NEW REPORT'), findsWidgets);
       expect(find.text('Test Cotton Factory'), findsOneWidget);
 
       for (final path in [

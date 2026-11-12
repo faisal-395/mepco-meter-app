@@ -167,10 +167,15 @@ class HomeScreen extends ConsumerWidget {
                     letterSpacing: 1,
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  DateFormat('EEEE, dd-MM-yy').format(now),
-                  style: const TextStyle(color: AppColors.muted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    DateFormat('EEE, dd-MM-yy').format(now),
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.muted),
+                  ),
                 ),
               ],
             ),

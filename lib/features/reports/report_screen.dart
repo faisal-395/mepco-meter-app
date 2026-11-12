@@ -418,12 +418,16 @@ class _StepTile extends StatelessWidget {
                       ),
               ),
               const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                  color: selected ? AppColors.navy : AppColors.text,
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    color: selected ? AppColors.navy : AppColors.text,
+                  ),
                 ),
               ),
             ],
