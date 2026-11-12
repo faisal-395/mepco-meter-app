@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../data/database.dart';
+import '../../domain/calculations.dart';
 import '../../domain/formatters.dart';
 import '../../domain/models.dart';
 import '../../domain/report_calc.dart';
@@ -28,67 +29,101 @@ class SectionCStep extends StatelessWidget {
     final t = b.template;
     final sc = c.sectionC;
     final r = b.report;
+    final method = c.settings['check_load_method'] == 'sum_per_phase'
+        ? 'sum'
+        : 'average';
+    final computedLoad = computeSectionC(
+      b.copyForCalc(checkLoadOverride: ''),
+      c.settings,
+    ).importCheckLoad;
+    final within = sc.limitText.isEmpty && r.withinLimitOverride.isEmpty
+        ? 'Set a limit in Settings, or choose below'
+        : (sc.within == null ? '—' : (sc.within! ? 'YES' : 'NO'));
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        for (final side in loadSides) ...[
-          SectionTitle(side == 'import' ? 'Import load' : 'Export load'),
-          for (final ph in phases)
-            _PhaseRow(c: c, side: side, phase: ph, sc: sc),
-          Text(
-            'Total: ${fmtNum(sc.sideTotal(side))} KW',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+        for (final side in loadSides)
+          FormSection(
+            title: side == 'import' ? 'Import load' : 'Export load',
+            child: _LoadTable(c: c, side: side, sc: sc),
           ),
-        ],
-        const SectionTitle('Results'),
-        _ResultLine(
-          'Check load (${c.settings['check_load_method'] == 'sum_per_phase' ? 'sum' : 'average'} of phases)',
-          '${fmtNum(computeSectionC(b.copyForCalc(checkLoadOverride: ''), c.settings).importCheckLoad)} KW',
-        ),
-        AppField(
-          label: 'Check load override (KW) — empty = computed',
-          value: r.checkLoadOverride,
-          numeric: true,
-          onChanged: (v) =>
-              _setReport(c, (r) => r.copyWith(checkLoadOverride: v)),
-        ),
-        for (final col in b.columns.where((x) => x.isUsed)) ...[
-          _ResultLine(
-            '${t.column(col.role).label} instant KW',
-            sc.instantImport[col.role] == null
-                ? '—'
-                : '${fmtNum(sc.instantImport[col.role])} KW, error ${fmtNum(sc.errorImport[col.role])} %',
-          ),
-          if (t.isNet && sc.instantExport[col.role] != null)
-            _ResultLine(
-              '${t.column(col.role).label} export instant KW',
-              '${fmtNum(sc.instantExport[col.role])} KW, error ${fmtNum(sc.errorExport[col.role])} %',
-            ),
-        ],
-        AppField(
-          label: '% error override — empty = computed',
-          value: r.percentErrorOverride,
-          numeric: true,
-          onChanged: (v) =>
-              _setReport(c, (r) => r.copyWith(percentErrorOverride: v)),
-        ),
-        _ResultLine(
-          'Within permissible limits',
-          sc.limitText.isEmpty && r.withinLimitOverride.isEmpty
-              ? 'No limit set in Settings — choose below'
-              : (sc.within == null ? '—' : (sc.within! ? 'Yes' : 'No')),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: '', label: Text('Auto')),
-              ButtonSegment(value: 'yes', label: Text('Yes')),
-              ButtonSegment(value: 'no', label: Text('No')),
+        FormSection(
+          title: 'Results',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InfoTable(labelWidth: 150, [
+                (
+                  'Check load ($method of phases)',
+                  computedLoad == null ? '' : '${fmtNum(computedLoad)} KW',
+                ),
+                if (r.checkLoadOverride.trim().isNotEmpty)
+                  ('Check load used', '${r.checkLoadOverride} KW (override)'),
+                for (final col in b.columns.where((x) => x.isUsed)) ...[
+                  (
+                    '${t.column(col.role).label} instant KW',
+                    sc.instantImport[col.role] == null
+                        ? '—'
+                        : '${fmtNum(sc.instantImport[col.role])} KW  •  '
+                              'error ${fmtNum(sc.errorImport[col.role])} %',
+                  ),
+                  if (t.isNet && sc.instantExport[col.role] != null)
+                    (
+                      '${t.column(col.role).label} export KW',
+                      '${fmtNum(sc.instantExport[col.role])} KW  •  '
+                          'error ${fmtNum(sc.errorExport[col.role])} %',
+                    ),
+                ],
+                ('Within permissible limits', within),
+              ]),
+              const SizedBox(height: 14),
+              const Text(
+                'OVERRIDES (leave empty to use the calculated values)',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                  color: AppColors.muted,
+                ),
+              ),
+              ResponsiveFields(
+                children: [
+                  AppField(
+                    label: 'Check load (KW)',
+                    value: r.checkLoadOverride,
+                    numeric: true,
+                    onChanged: (v) =>
+                        _setReport(c, (r) => r.copyWith(checkLoadOverride: v)),
+                  ),
+                  AppField(
+                    label: '% error',
+                    value: r.percentErrorOverride,
+                    numeric: true,
+                    onChanged: (v) => _setReport(
+                      c,
+                      (r) => r.copyWith(percentErrorOverride: v),
+                    ),
+                  ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 6, bottom: 6),
+                child: Text('Within permissible limits'),
+              ),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: '', label: Text('Auto')),
+                  ButtonSegment(value: 'yes', label: Text('Yes')),
+                  ButtonSegment(value: 'no', label: Text('No')),
+                ],
+                selected: {r.withinLimitOverride},
+                onSelectionChanged: (s) => _setReport(
+                  c,
+                  (r) => r.copyWith(withinLimitOverride: s.first),
+                ),
+              ),
             ],
-            selected: {r.withinLimitOverride},
-            onSelectionChanged: (s) =>
-                _setReport(c, (r) => r.copyWith(withinLimitOverride: s.first)),
           ),
         ),
       ],
@@ -108,81 +143,111 @@ extension on ReportBundle {
   );
 }
 
-class _ResultLine extends StatelessWidget {
-  const _ResultLine(this.label, this.value);
-  final String label;
-  final String value;
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: Text(label)),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _PhaseRow extends StatelessWidget {
-  const _PhaseRow({
-    required this.c,
-    required this.side,
-    required this.phase,
-    required this.sc,
-  });
+/// Phase table like the paper form: Phase | Volts | Amps | P.F | K.W.
+/// The K.W cell shows the calculated value in grey; typing a value overrides it.
+class _LoadTable extends StatelessWidget {
+  const _LoadTable({required this.c, required this.side, required this.sc});
   final WizardController c;
   final String side;
-  final String phase;
   final SectionC sc;
 
   @override
   Widget build(BuildContext context) {
-    final l = c.bundle.load(side, phase);
-    final kw = sc.phaseKw[phaseKey(side, phase)];
-    Widget f(String label, String v, void Function(String) set) => SizedBox(
-      width: 110,
-      child: AppField(
-        label: label,
-        value: v,
-        numeric: true,
-        onChanged: (x) {
-          set(x);
-          c.changed();
-        },
+    Widget head(String t) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(
+        t,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          color: AppColors.navy,
+          fontSize: 13,
+        ),
       ),
     );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Wrap(
-        spacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          SizedBox(
-            width: 24,
-            child: Text(
-              phase,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    Widget pad(Widget w) => Padding(padding: const EdgeInsets.all(3), child: w);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Table(
+          border: TableBorder.all(color: AppColors.line),
+          columnWidths: const {
+            0: FixedColumnWidth(40),
+            4: FlexColumnWidth(1.35),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            TableRow(
+              decoration: const BoxDecoration(color: AppColors.navyLight),
+              children: [
+                head('Ph'),
+                head('Volts'),
+                head('Amps'),
+                head('P.F'),
+                head('K.W'),
+              ],
             ),
+            for (final ph in phases)
+              () {
+                final l = c.bundle.load(side, ph);
+                final kw = phaseKw(l.volts, l.amps, l.pf);
+                Widget f(String v, void Function(String) set, {String? hint}) =>
+                    pad(
+                      CompactField(
+                        value: v,
+                        hint: hint,
+                        onChanged: (x) {
+                          set(x);
+                          c.changed();
+                        },
+                      ),
+                    );
+                return TableRow(
+                  children: [
+                    Center(
+                      child: Text(
+                        ph,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 17,
+                          color: AppColors.navy,
+                        ),
+                      ),
+                    ),
+                    f(l.volts, (x) => l.volts = x),
+                    f(l.amps, (x) => l.amps = x),
+                    f(l.pf, (x) => l.pf = x),
+                    f(
+                      l.kwOverride,
+                      (x) => l.kwOverride = x,
+                      hint: kw == null ? '' : fmtNum(kw),
+                    ),
+                  ],
+                );
+              }(),
+            TableRow(
+              decoration: const BoxDecoration(color: AppColors.paper),
+              children: [
+                head('Total'),
+                const SizedBox(),
+                const SizedBox(),
+                const SizedBox(),
+                head(
+                  sc.sideTotal(side) == null ? '' : fmtNum(sc.sideTotal(side)),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 6),
+          child: Text(
+            'K.W = √3 × V × A × P.F ÷ 1000 (grey). Type in K.W to override.',
+            style: TextStyle(fontSize: 12, color: AppColors.muted),
           ),
-          f('Volts', l.volts, (x) => l.volts = x),
-          f('Amps', l.amps, (x) => l.amps = x),
-          f('P.F', l.pf, (x) => l.pf = x),
-          f('KW (override)', l.kwOverride, (x) => l.kwOverride = x),
-          Text(
-            '= ${fmtNum(kw)} KW',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -324,60 +389,87 @@ class SectionDStep extends StatelessWidget {
           children: [
             const Expanded(
               child: Text(
-                'Leave empty if no seals. An empty block is struck through.',
-                style: TextStyle(color: Colors.black54),
+                'Leave empty if no seals. An empty block is struck through on the printout.',
+                style: TextStyle(color: AppColors.muted),
               ),
             ),
-            TextButton.icon(
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
               onPressed: () => _fillRange(context),
-              icon: const Icon(Icons.auto_fix_high),
+              icon: const Icon(Icons.auto_fix_high, size: 18),
               label: const Text('Fill a range'),
             ),
           ],
         ),
-        for (final spot in sealSpots) ...[
-          SectionTitle(spot.label.isEmpty ? 'MSB (2nd row)' : spot.label),
-          for (final col in cols)
-            Row(
+        const SizedBox(height: 12),
+        for (final col in cols)
+          FormSection(
+            title: b.template.column(col.role).label,
+            child: Table(
+              border: TableBorder.all(color: AppColors.line),
+              columnWidths: const {0: FixedColumnWidth(92)},
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
               children: [
-                if (cols.length > 1)
-                  SizedBox(
-                    width: 90,
-                    child: Text(
-                      b.template.column(col.role).label,
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ),
-                Expanded(
-                  child: AppField(
-                    key: ValueKey(
-                      '${spot.code}-${col.role}-m-${b.seal(spot.code, col.role).mtSeal}',
-                    ),
-                    label: 'M&T Seal',
-                    value: b.seal(spot.code, col.role).mtSeal,
-                    onChanged: (v) {
-                      b.seal(spot.code, col.role).mtSeal = v;
-                      c.changed();
-                    },
-                  ),
+                TableRow(
+                  decoration: const BoxDecoration(color: AppColors.navyLight),
+                  children: [
+                    for (final h in ['Seal at', 'M&T Seal', 'Postal Order'])
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 6,
+                        ),
+                        child: Text(
+                          h,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.navy,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: AppField(
-                    key: ValueKey(
-                      '${spot.code}-${col.role}-p-${b.seal(spot.code, col.role).postalOrder}',
-                    ),
-                    label: 'Postal Order',
-                    value: b.seal(spot.code, col.role).postalOrder,
-                    onChanged: (v) {
-                      b.seal(spot.code, col.role).postalOrder = v;
-                      c.changed();
-                    },
+                for (final spot in sealSpots)
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          spot.label.isEmpty ? 'MSB (2)' : spot.label,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(3),
+                        child: CompactField(
+                          value: b.seal(spot.code, col.role).mtSeal,
+                          numeric: false,
+                          textAlign: TextAlign.start,
+                          onChanged: (v) {
+                            b.seal(spot.code, col.role).mtSeal = v;
+                            c.changed();
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(3),
+                        child: CompactField(
+                          value: b.seal(spot.code, col.role).postalOrder,
+                          numeric: false,
+                          textAlign: TextAlign.start,
+                          onChanged: (v) {
+                            b.seal(spot.code, col.role).postalOrder = v;
+                            c.changed();
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ),
               ],
             ),
-        ],
+          ),
       ],
     );
   }
@@ -541,31 +633,37 @@ class SectionFStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text(
-          'Postal orders signed by (printed in section F):',
-          style: TextStyle(color: Colors.black54),
-        ),
-        AppField(
-          label: '1. EXEN (OP)',
-          value: r.signerExenOp,
-          hint: 'e.g. Engr. Name (EXEN OP CTN)',
-          onChanged: (v) => _setReport(c, (r) => r.copyWith(signerExenOp: v)),
-        ),
-        AppField(
-          label: '2. SDO (OP)',
-          value: r.signerSdoOp,
-          hint: 'e.g. Engr. Name (SDO OP S/Town)',
-          onChanged: (v) => _setReport(c, (r) => r.copyWith(signerSdoOp: v)),
-        ),
-        AppField(
-          label: '3.',
-          value: r.signer3,
-          onChanged: (v) => _setReport(c, (r) => r.copyWith(signer3: v)),
-        ),
-        AppField(
-          label: '4.',
-          value: r.signer4,
-          onChanged: (v) => _setReport(c, (r) => r.copyWith(signer4: v)),
+        FormSection(
+          title: 'Postal orders signed by',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppField(
+                label: '1. EXEN (OP)',
+                value: r.signerExenOp,
+                hint: 'e.g. Engr. Name (EXEN OP CTN)',
+                onChanged: (v) =>
+                    _setReport(c, (r) => r.copyWith(signerExenOp: v)),
+              ),
+              AppField(
+                label: '2. SDO (OP)',
+                value: r.signerSdoOp,
+                hint: 'e.g. Engr. Name (SDO OP S/Town)',
+                onChanged: (v) =>
+                    _setReport(c, (r) => r.copyWith(signerSdoOp: v)),
+              ),
+              AppField(
+                label: '3.',
+                value: r.signer3,
+                onChanged: (v) => _setReport(c, (r) => r.copyWith(signer3: v)),
+              ),
+              AppField(
+                label: '4.',
+                value: r.signer4,
+                onChanged: (v) => _setReport(c, (r) => r.copyWith(signer4: v)),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -594,42 +692,74 @@ class ReviewStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          '${b.template.shortName} — ${b.sectionA['name'] ?? ''}',
-          style: Theme.of(context).textTheme.titleLarge,
+        FormSection(
+          title: 'Report summary',
+          child: InfoTable([
+            ('Report', b.template.shortName),
+            ('M/S', b.sectionA['name'] ?? ''),
+            ('A/C No', b.sectionA['account_no'] ?? ''),
+            ('Memo No', b.report.memoNo.isEmpty ? '—' : b.report.memoNo),
+            ('Visit date', fmtDate(b.report.visitDate)),
+            ('Status', 'DRAFT'),
+          ]),
         ),
-        Text(
-          'A/C ${b.sectionA['account_no'] ?? ''}  •  Visit ${fmtDate(b.report.visitDate)}  •  Memo ${b.report.memoNo}',
+        FormSection(
+          title: warnings.isEmpty
+              ? 'Checks'
+              : 'Checks — ${warnings.length} warning(s)',
+          child: warnings.isEmpty
+              ? const Row(
+                  children: [
+                    Icon(Icons.check_circle, color: okColor),
+                    SizedBox(width: 10),
+                    Text(
+                      'All checks passed.',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'Warnings never block saving. You can still mark the report final.',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                    ),
+                    for (final w in warnings)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: warningColor,
+                          borderRadius: BorderRadius.circular(4),
+                          border: const Border(
+                            left: BorderSide(color: warningBorder, width: 4),
+                          ),
+                        ),
+                        child: ListTile(
+                          dense: true,
+                          leading: const Icon(
+                            Icons.warning_amber,
+                            color: Color(0xFF7A5C00),
+                          ),
+                          title: Text(
+                            w.message,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          subtitle: Text(w.section.toUpperCase()),
+                          trailing: _sectionStep.containsKey(w.section)
+                              ? const Icon(Icons.chevron_right)
+                              : null,
+                          onTap: _sectionStep.containsKey(w.section)
+                              ? () => onGoTo(_sectionStep[w.section]!)
+                              : null,
+                        ),
+                      ),
+                  ],
+                ),
         ),
-        const SizedBox(height: 12),
-        if (warnings.isEmpty)
-          const Card(
-            child: ListTile(
-              leading: Icon(Icons.check_circle, color: okColor),
-              title: Text('No warnings'),
-            ),
-          )
-        else ...[
-          Text(
-            '${warnings.length} warning(s) — you can still mark the report final:',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          for (final w in warnings)
-            Card(
-              color: warningColor,
-              child: ListTile(
-                leading: const Icon(Icons.warning_amber, color: Colors.brown),
-                title: Text(w.message),
-                subtitle: Text(w.section),
-                trailing: _sectionStep.containsKey(w.section)
-                    ? const Icon(Icons.chevron_right)
-                    : null,
-                onTap: _sectionStep.containsKey(w.section)
-                    ? () => onGoTo(_sectionStep[w.section]!)
-                    : null,
-              ),
-            ),
-        ],
         const SizedBox(height: 16),
         FilledButton.icon(
           onPressed: () async {

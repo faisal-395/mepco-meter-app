@@ -3,10 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/providers.dart';
+import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../data/database.dart';
 import '../../domain/formatters.dart';
-import '../../domain/report_templates.dart';
+import '../home/home_screen.dart' show ReportCard;
 import '../reports/new_report.dart';
 
 class ConsumerDetailScreen extends ConsumerWidget {
@@ -42,108 +43,190 @@ class ConsumerDetailBody extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(c.name, style: Theme.of(context).textTheme.headlineSmall),
-            Text('${c.accountNo}  /  ${c.tariff}'),
-            if (c.address.isNotEmpty) Text(c.address),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 16,
-              runSpacing: 4,
-              children: [
-                _kv('Sub Division', c.subDivision),
-                _kv('Division', c.opDivision),
-                _kv(
-                  'Sanctioned',
-                  c.sanctionedLoadKw.isEmpty ? '' : '${c.sanctionedLoadKw} KW',
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: const BoxDecoration(
+                color: AppColors.navy,
+                borderRadius: BorderRadius.all(Radius.circular(6)),
+                border: Border(
+                  bottom: BorderSide(color: AppColors.gold, width: 3),
                 ),
-                _kv('Industry', c.industryKind),
-                _kv(
-                  'Transformer',
-                  c.transformerKva.isEmpty ? '' : '${c.transformerKva} KVA',
-                ),
-                _kv(
-                  'CT',
-                  c.ctPrimary.isEmpty ? '' : '${c.ctPrimary}/${c.ctSecondary}',
-                ),
-                _kv('MF', c.mf),
-                _kv('Cable', c.cableSize),
-                _kv('MSB', c.msbType),
-              ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'M/S ${c.name}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (c.address.isNotEmpty)
+                    Text(
+                      c.address,
+                      style: const TextStyle(color: Color(0xFFDCE4EF)),
+                    ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'A/C ${c.accountNo}${c.tariff.isEmpty ? '' : '   •   Tariff ${c.tariff}'}',
+                    style: const TextStyle(
+                      color: AppColors.gold,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
-                FilledButton.icon(
-                  onPressed: () =>
-                      startNewReport(context, ref, consumerId: c.id),
-                  icon: const Icon(Icons.note_add),
-                  label: const Text('New report'),
+                Expanded(
+                  flex: 3,
+                  child: FilledButton.icon(
+                    onPressed: () =>
+                        startNewReport(context, ref, consumerId: c.id),
+                    icon: const Icon(Icons.note_add),
+                    label: const Text('New report'),
+                  ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/consumers/${c.id}/edit'),
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/consumers/${c.id}/edit'),
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit'),
+                  ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/consumers/${c.id}/history'),
-                  icon: const Icon(Icons.timeline),
-                  label: const Text('History'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/consumers/${c.id}/history'),
+                    icon: const Icon(Icons.timeline),
+                    label: const Text('History'),
+                  ),
                 ),
               ],
             ),
-            const SectionTitle('Meters'),
-            if (meters.isEmpty) const Text('No meters yet.'),
-            for (final m in meters)
-              Card(
-                child: ListTile(
-                  leading: Icon(
-                    m.status == 'active'
-                        ? Icons.electric_meter
-                        : Icons.remove_circle_outline,
-                  ),
-                  title: Text('${m.mfgNo}  ${m.make}'),
-                  subtitle: Text(
-                    [
-                      m.meterKind,
-                      if (m.mf.isNotEmpty) 'MF ${m.mf}',
-                      m.status == 'active'
-                          ? 'Active'
-                          : 'Removed ${fmtDate(m.removedOn)}',
-                    ].join('  •  '),
-                  ),
-                  trailing: const Icon(Icons.edit),
-                  onTap: () => context.push('/meters/${m.id}/edit'),
+            const SizedBox(height: 14),
+            FormSection(
+              letter: 'A',
+              title: 'Description of installation',
+              child: InfoTable([
+                ('Sub Division', c.subDivision),
+                ('Division (OP)', c.opDivision),
+                (
+                  'Sanctioned Load',
+                  c.sanctionedLoadKw.isEmpty ? '' : '${c.sanctionedLoadKw} KW',
                 ),
-              ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
+                ('Connected Load', c.connectedLoad),
+                ('Kind of Industry', c.industryKind),
+                (
+                  'Transformer',
+                  [
+                    if (c.transformerKva.isNotEmpty) '${c.transformerKva} KVA',
+                    if (c.transformerMake.isNotEmpty) '(${c.transformerMake})',
+                    if (c.transformerNo.isNotEmpty) 'No ${c.transformerNo}',
+                  ].join(' '),
+                ),
+                (
+                  'C.T Ratio',
+                  c.ctPrimary.isEmpty
+                      ? ''
+                      : '${c.ctPrimary}/${c.ctSecondary} A',
+                ),
+                ('M.F', c.mf),
+                ('Cable Size', c.cableSize),
+                ('MSB Type', c.msbType),
+                ('Feeder', c.feederName),
+              ]),
+            ),
+            FormSection(
+              letter: 'B',
+              title: 'Meters',
+              action: TextButton.icon(
                 onPressed: () => context.push('/consumers/${c.id}/meters/new'),
-                icon: const Icon(Icons.add),
-                label: const Text('Add meter'),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add'),
               ),
+              child: meters.isEmpty
+                  ? const Text(
+                      'No meters yet.',
+                      style: TextStyle(color: AppColors.muted),
+                    )
+                  : Column(
+                      children: [
+                        for (final m in meters)
+                          InkWell(
+                            onTap: () => context.push('/meters/${m.id}/edit'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                border: m == meters.last
+                                    ? null
+                                    : const Border(
+                                        bottom: BorderSide(
+                                          color: AppColors.line,
+                                        ),
+                                      ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.electric_meter,
+                                    color: m.status == 'active'
+                                        ? AppColors.navy
+                                        : AppColors.muted,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'MFG No ${m.mfgNo}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15.5,
+                                          ),
+                                        ),
+                                        Text(
+                                          [
+                                            '${m.make} ${m.meterKind}'.trim(),
+                                            if (m.mf.isNotEmpty) 'MF ${m.mf}',
+                                            if (m.status != 'active')
+                                              'removed ${fmtDate(m.removedOn)}',
+                                          ].join('  •  '),
+                                          style: const TextStyle(
+                                            color: AppColors.muted,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  StatusChip(
+                                    m.status == 'active' ? 'active' : 'removed',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
             ),
             const SectionTitle('Reports (newest first)'),
-            if (reports.isEmpty) const Text('No reports yet.'),
-            for (final r in reports)
-              Card(
-                child: ListTile(
-                  leading: Icon(
-                    r.report.status == 'final'
-                        ? Icons.verified
-                        : Icons.edit_note,
-                  ),
-                  title: Text(
-                    '${templateFor(r.report.reportType).shortName}  •  ${fmtDate(r.report.visitDate)}',
-                  ),
-                  subtitle: Text(
-                    'Memo ${r.report.memoNo.isEmpty ? '-' : r.report.memoNo}  •  ${r.report.status}',
-                  ),
-                  onTap: () => context.push('/reports/${r.report.id}'),
-                ),
+            if (reports.isEmpty)
+              const Text(
+                'No reports yet.',
+                style: TextStyle(color: AppColors.muted),
               ),
+            for (final r in reports) ReportCard(item: r, showConsumer: false),
             if (c.notes.isNotEmpty) ...[
               const SectionTitle('Notes'),
               Text(c.notes),
@@ -179,21 +262,4 @@ class ConsumerDetailBody extends ConsumerWidget {
     await ref.read(consumersDaoProvider).delete(c.id);
     if (context.mounted && context.canPop()) context.pop();
   }
-
-  Widget _kv(String k, String v) => v.isEmpty
-      ? const SizedBox.shrink()
-      : Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: '$k: ',
-                style: const TextStyle(color: Colors.black54),
-              ),
-              TextSpan(
-                text: v,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        );
 }

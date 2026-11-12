@@ -178,18 +178,249 @@ class ResponsiveFields extends StatelessWidget {
   }
 }
 
+/// Small uppercase heading with a gold bar, like a heading on an office form.
 class SectionTitle extends StatelessWidget {
   const SectionTitle(this.text, {super.key});
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 16, bottom: 6),
-    child: Text(
-      text,
-      style: Theme.of(context).textTheme.titleMedium
-          ?.copyWith(fontWeight: FontWeight.bold),
+    padding: const EdgeInsets.only(top: 18, bottom: 8),
+    child: Row(
+      children: [
+        Container(width: 4, height: 18, color: AppColors.gold),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: AppColors.navy,
+            ),
+          ),
+        ),
+      ],
     ),
   );
+}
+
+/// Navy band with the office name, shown at the top of the home screen.
+class OfficeHeader extends StatelessWidget {
+  const OfficeHeader({super.key, required this.circle, this.trailing});
+  final String circle;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: const BoxDecoration(
+        color: AppColors.navy,
+        border: Border(bottom: BorderSide(color: AppColors.gold, width: 3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.gold, width: 2),
+            ),
+            child: const Icon(Icons.bolt, color: AppColors.navy, size: 32),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'MULTAN ELECTRIC POWER COMPANY',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Office of the Executive Engineer M&T',
+                  style: TextStyle(color: Color(0xFFDCE4EF), fontSize: 13),
+                ),
+                Text(
+                  'Circle $circle',
+                  style: const TextStyle(
+                    color: AppColors.gold,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    );
+  }
+}
+
+/// A form section panel: navy title band (with a letter badge) over white content.
+class FormSection extends StatelessWidget {
+  const FormSection({
+    super.key,
+    required this.title,
+    required this.child,
+    this.letter,
+    this.action,
+  });
+  final String? letter;
+  final String title;
+  final Widget child;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: AppColors.navyLight,
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            child: Row(
+              children: [
+                if (letter != null) ...[
+                  Container(
+                    width: 26,
+                    height: 26,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.navy,
+                      borderRadius: BorderRadius.all(Radius.circular(4)),
+                    ),
+                    child: Text(
+                      letter!,
+                      style: const TextStyle(
+                        color: AppColors.gold,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Text(
+                    title.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+                ?action,
+              ],
+            ),
+          ),
+          Padding(padding: const EdgeInsets.all(12), child: child),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bordered two-column key/value table (like the cells of a paper form).
+class InfoTable extends StatelessWidget {
+  const InfoTable(this.rows, {super.key, this.labelWidth = 140});
+  final List<(String, String)> rows;
+  final double labelWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = rows.where((r) => r.$2.trim().isNotEmpty).toList();
+    if (visible.isEmpty) return const SizedBox.shrink();
+    return Table(
+      border: TableBorder.all(color: AppColors.line),
+      columnWidths: {0: FixedColumnWidth(labelWidth)},
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      children: [
+        for (final r in visible)
+          TableRow(
+            children: [
+              Container(
+                color: AppColors.paper,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 9,
+                ),
+                child: Text(
+                  r.$1,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 9,
+                ),
+                child: Text(
+                  r.$2,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+/// Small coloured status label (DRAFT / FINAL).
+class StatusChip extends StatelessWidget {
+  const StatusChip(this.status, {super.key});
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFinal = status == 'final' || status == 'active';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isFinal ? const Color(0xFFE3F1E6) : AppColors.goldLight,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: isFinal ? okColor : AppColors.gold),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
+          color: isFinal ? okColor : const Color(0xFF7A5C00),
+        ),
+      ),
+    );
+  }
 }
 
 /// Yellow banner listing warnings. Warnings never block saving.
@@ -271,3 +502,61 @@ Widget loadingOrError(Object? error) => Center(
           child: Text('Error: $error'),
         ),
 );
+
+/// Small input for tables (no label). Shows [hint] in grey when empty.
+class CompactField extends StatefulWidget {
+  const CompactField({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.hint,
+    this.numeric = true,
+    this.textAlign = TextAlign.center,
+  });
+  final String value;
+  final ValueChanged<String> onChanged;
+  final String? hint;
+  final bool numeric;
+  final TextAlign textAlign;
+
+  @override
+  State<CompactField> createState() => _CompactFieldState();
+}
+
+class _CompactFieldState extends State<CompactField> {
+  late final _c = TextEditingController(text: widget.value);
+
+  @override
+  void didUpdateWidget(CompactField old) {
+    super.didUpdateWidget(old);
+    if (widget.value != _c.text) _c.text = widget.value;
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _c,
+      textAlign: widget.textAlign,
+      style: const TextStyle(fontSize: 15.5),
+      keyboardType: widget.numeric
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
+      inputFormatters: widget.numeric
+          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\-]'))]
+          : null,
+      decoration: InputDecoration(
+        hintText: widget.hint,
+        hintStyle: const TextStyle(color: AppColors.muted),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      ),
+      onChanged: widget.onChanged,
+    );
+  }
+}

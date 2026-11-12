@@ -107,10 +107,32 @@ class _ReadingsStepState extends State<ReadingsStep> {
                       if (c.previous[col.role] != null)
                         Text(
                           'Grey values: last visit ${fmtDate(c.previous[col.role]!.report.visitDate)}',
-                          style: const TextStyle(color: Colors.black54),
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 13,
+                          ),
                         ),
-                      for (final p in t.params)
-                        ReadingCell(c: c, slot: col, param: p, showLabel: true),
+                      _MeterCaption(slot: col, template: t),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: AppColors.line),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final p in t.params)
+                              ReadingCell(
+                                c: c,
+                                slot: col,
+                                param: p,
+                                showLabel: true,
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
               ],
@@ -130,47 +152,102 @@ class _WideGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = c.bundle.template;
-    return Table(
-      columnWidths: {
-        0: const FixedColumnWidth(220),
-        for (var i = 0; i < columns.length; i++) i + 1: const FlexColumnWidth(),
-      },
-      defaultVerticalAlignment: TableCellVerticalAlignment.top,
-      children: [
-        TableRow(
-          children: [
-            const SizedBox(),
-            for (final col in columns)
-              Padding(
-                padding: const EdgeInsets.all(6),
-                child: Text(
-                  '${t.column(col.role).label}\n${col.meter?.mfgNo ?? '(no meter)'}'
-                  '${c.previous[col.role] != null ? '\nlast visit ${fmtDate(c.previous[col.role]!.report.visitDate)}' : ''}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Table(
+        border: const TableBorder(
+          horizontalInside: BorderSide(color: AppColors.line),
+          verticalInside: BorderSide(color: AppColors.line),
         ),
-        for (final p in t.params)
+        columnWidths: {
+          0: const FixedColumnWidth(240),
+          for (var i = 0; i < columns.length; i++)
+            i + 1: const FlexColumnWidth(),
+        },
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: [
           TableRow(
+            decoration: const BoxDecoration(color: AppColors.navyLight),
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 18, right: 8),
-                child: Text(_label(p)),
+              const Padding(
+                padding: EdgeInsets.all(10),
+                child: Text(
+                  'PARAMETERS',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.navy,
+                    letterSpacing: 0.6,
+                  ),
+                ),
               ),
               for (final col in columns)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: ReadingCell(
-                    c: c,
-                    slot: col,
-                    param: p,
-                    showLabel: false,
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.column(col.role).label.toUpperCase(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.navy,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                      Text(
+                        'Meter ${col.meter?.mfgNo ?? '(none)'}'
+                        '${c.previous[col.role] != null ? '  •  last visit ${fmtDate(c.previous[col.role]!.report.visitDate)}' : ''}',
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],
           ),
-      ],
+          for (final p in t.params)
+            TableRow(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: (p.label == 'Peak' || p.label == 'Off Peak')
+                        ? 28
+                        : 12,
+                    right: 8,
+                  ),
+                  child: Text(
+                    _label(p),
+                    style: TextStyle(
+                      fontWeight: (p.label == 'Peak' || p.label == 'Off Peak')
+                          ? FontWeight.w500
+                          : FontWeight.w700,
+                      color: (p.label == 'Peak' || p.label == 'Off Peak')
+                          ? AppColors.muted
+                          : AppColors.text,
+                    ),
+                  ),
+                ),
+                for (final col in columns)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                    child: ReadingCell(
+                      c: c,
+                      slot: col,
+                      param: p,
+                      showLabel: false,
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }
@@ -197,8 +274,13 @@ class ReadingCell extends StatelessWidget {
     final t = c.bundle.template;
     final p = param;
     if (p.kind == ParamKind.meterNo) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          border: showLabel
+              ? const Border(bottom: BorderSide(color: AppColors.line))
+              : null,
+        ),
         child: Text(
           '${showLabel ? '${_label(p)}: ' : ''}${slot.meter?.mfgNo ?? '(pick a meter in step B)'}',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -293,23 +375,64 @@ class ReadingCell extends StatelessWidget {
       _ => null,
     };
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _ReadingField(
-          key: ValueKey('${slot.role}-${p.code}'),
-          label: showLabel ? _label(p) : null,
-          hint: hint,
-          value: value,
-          kind: p.kind,
-          onChanged: (v) {
-            slot.readings[p.code] = v;
-            c.changed();
-          },
-        ),
-        ...notes,
-        const SizedBox(height: 4),
-      ],
+    final field = _ReadingField(
+      key: ValueKey('${slot.role}-${p.code}'),
+      label: null,
+      hint: hint,
+      value: value,
+      kind: p.kind,
+      onChanged: (v) {
+        slot.readings[p.code] = v;
+        c.changed();
+      },
+    );
+    if (!showLabel) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [field, ...notes, const SizedBox(height: 4)],
+      );
+    }
+    // Phone: one form row per parameter (label left, value right).
+    final sub = p.label == 'Peak' || p.label == 'Off Peak';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.line)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 5,
+                child: Padding(
+                  padding: EdgeInsets.only(left: sub ? 16 : 0),
+                  child: Text(
+                    _label(p),
+                    style: TextStyle(
+                      fontSize: sub ? 14.5 : 15,
+                      fontWeight: sub ? FontWeight.w500 : FontWeight.w700,
+                      color: sub ? AppColors.muted : AppColors.text,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(flex: 4, child: field),
+            ],
+          ),
+          if (notes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 10,
+                children: notes,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -353,7 +476,7 @@ class _ReadingFieldState extends State<_ReadingField> {
     final numeric =
         widget.kind != ParamKind.date && widget.kind != ParamKind.time;
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: 2),
       child: TextField(
         controller: _ctl,
         style: const TextStyle(fontSize: 17),
@@ -366,12 +489,50 @@ class _ReadingFieldState extends State<_ReadingField> {
             numeric ? RegExp(r'[0-9.\-]') : RegExp(r'[0-9:\-/.]'),
           ),
         ],
+        textAlign: widget.label == null ? TextAlign.right : TextAlign.start,
         decoration: InputDecoration(
           labelText: widget.label,
           hintText: widget.hint,
-          isDense: widget.label == null,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 11,
+          ),
         ),
         onChanged: widget.onChanged,
+      ),
+    );
+  }
+}
+
+/// "Meter 000001 • MTL AMR • MF 80" caption above a meter's readings.
+class _MeterCaption extends StatelessWidget {
+  const _MeterCaption({required this.slot, required this.template});
+  final ColumnSlot slot;
+  final ReportTemplate template;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = slot.meter;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.electric_meter, color: AppColors.navy, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              m == null
+                  ? 'No meter selected (step B)'
+                  : 'Meter ${m.mfgNo}  •  ${m.make} ${m.meterKind}'
+                        '${m.mf.isEmpty ? '' : '  •  MF ${m.mf}'}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.navy,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
