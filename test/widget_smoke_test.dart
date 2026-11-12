@@ -48,7 +48,14 @@ void main() {
       expect(find.text('New report'), findsWidgets);
       expect(find.text('Test Cotton Factory'), findsOneWidget);
 
-      for (final path in ['/consumers', '/settings', '/reports', '/search']) {
+      for (final path in [
+        '/consumers',
+        '/settings',
+        '/reports',
+        '/search',
+        '/consumers/1/history',
+        '/consumers/2/history',
+      ]) {
         router.push(path);
         await settle(tester);
         router.pop();
