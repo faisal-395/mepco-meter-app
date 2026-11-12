@@ -49,21 +49,21 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-        },
-        onUpgrade: (m, from, to) async {
-          // Add future migrations here, step by step. Never drop user data.
-        },
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-          // Insert any setting that is missing (keeps edited values).
-          for (final e in SettingKeys.defaults.entries) {
-            await into(settings).insert(
-              SettingsCompanion.insert(key: e.key, value: Value(e.value)),
-              mode: InsertMode.insertOrIgnore,
-            );
-          }
-        },
-      );
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      // Add future migrations here, step by step. Never drop user data.
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+      // Insert any setting that is missing (keeps edited values).
+      for (final e in SettingKeys.defaults.entries) {
+        await into(settings).insert(
+          SettingsCompanion.insert(key: e.key, value: Value(e.value)),
+          mode: InsertMode.insertOrIgnore,
+        );
+      }
+    },
+  );
 }

@@ -23,14 +23,16 @@ void main() {
   tearDown(() => db.close());
 
   Future<int> addConsumer([String acc = '99-00001-0000001']) =>
-      consumers.insert(ConsumersCompanion.insert(
-        accountNo: acc,
-        name: const Value('Test Cotton Factory'),
-        subDivision: const Value('F/Abbas'),
-        ctPrimary: const Value('400'),
-        ctSecondary: const Value('5'),
-        mf: const Value('80'),
-      ));
+      consumers.insert(
+        ConsumersCompanion.insert(
+          accountNo: acc,
+          name: const Value('Test Cotton Factory'),
+          subDivision: const Value('F/Abbas'),
+          ctPrimary: const Value('400'),
+          ctSecondary: const Value('5'),
+          mf: const Value('80'),
+        ),
+      );
 
   test('settings are seeded and editable', () async {
     final all = await settings.getAll();
@@ -51,25 +53,37 @@ void main() {
     expect(await consumers.watchAll(query: 'zzz').first, isEmpty);
     expect(() => addConsumer(), throwsA(anything));
     await consumers.updateFields(
-        id, const ConsumersCompanion(tariff: Value('B2')));
+      id,
+      const ConsumersCompanion(tariff: Value('B2')),
+    );
     expect((await consumers.findByAccount('99-00001-0000001'))!.tariff, 'B2');
   });
 
   test('meters per consumer', () async {
     final cid = await addConsumer();
-    await meters.insert(MetersCompanion.insert(consumerId: cid, mfgNo: '000001'));
-    await meters.insert(MetersCompanion.insert(
-        consumerId: cid, mfgNo: '000002', status: const Value('removed')));
+    await meters.insert(
+      MetersCompanion.insert(consumerId: cid, mfgNo: '000001'),
+    );
+    await meters.insert(
+      MetersCompanion.insert(
+        consumerId: cid,
+        mfgNo: '000002',
+        status: const Value('removed'),
+      ),
+    );
     final list = await meters.forConsumer(cid);
     expect(list.map((m) => m.mfgNo), ['000001', '000002']);
   });
 
   test('draft create, save and load bundle', () async {
     final cid = await addConsumer();
-    final mid = await meters
-        .insert(MetersCompanion.insert(consumerId: cid, mfgNo: '000001'));
+    final mid = await meters.insert(
+      MetersCompanion.insert(consumerId: cid, mfgNo: '000001'),
+    );
     final rid = await reports.createDraft(
-        consumerId: cid, type: ReportType.amrTestCheck);
+      consumerId: cid,
+      type: ReportType.amrTestCheck,
+    );
     var b = (await reports.loadBundle(rid))!;
     expect(b.columns.map((c) => c.role), ['removed', 'amr', 'existing']);
     expect(b.column('amr').meter!.id, mid);
@@ -93,30 +107,42 @@ void main() {
 
   test('previous readings and history of a meter', () async {
     final cid = await addConsumer();
-    final mid = await meters
-        .insert(MetersCompanion.insert(consumerId: cid, mfgNo: '000001'));
+    final mid = await meters.insert(
+      MetersCompanion.insert(consumerId: cid, mfgNo: '000001'),
+    );
     final r1 = await reports.createDraft(
-        consumerId: cid, type: ReportType.amrTestCheck);
+      consumerId: cid,
+      type: ReportType.amrTestCheck,
+    );
     var b1 = (await reports.loadBundle(r1))!;
     b1.report = b1.report.copyWith(visitDate: Value(DateTime(2026, 9, 1)));
     b1.column('amr').readings['kwh_total'] = '100';
     await reports.saveBundle(b1);
 
     final r2 = await reports.createDraft(
-        consumerId: cid, type: ReportType.amrTestCheck);
+      consumerId: cid,
+      type: ReportType.amrTestCheck,
+    );
     var b2 = (await reports.loadBundle(r2))!;
     b2.report = b2.report.copyWith(visitDate: Value(DateTime(2026, 10, 6)));
     b2.column('amr').readings['kwh_total'] = '150';
     await reports.saveBundle(b2);
 
-    final prev = await reports.previousReadings(mid,
-        excludeReportId: r2, before: DateTime(2026, 10, 6));
+    final prev = await reports.previousReadings(
+      mid,
+      excludeReportId: r2,
+      before: DateTime(2026, 10, 6),
+    );
     expect(prev!.values['kwh_total'], '100');
     expect(prev.report.id, r1);
     expect(
-        await reports.previousReadings(mid,
-            excludeReportId: r1, before: DateTime(2026, 9, 1)),
-        isNull);
+      await reports.previousReadings(
+        mid,
+        excludeReportId: r1,
+        before: DateTime(2026, 9, 1),
+      ),
+      isNull,
+    );
 
     final hist = await reports.meterHistory(mid);
     expect(hist.map((v) => v.values['kwh_total']), ['100', '150']);
@@ -124,9 +150,13 @@ void main() {
 
   test('duplicate, final, filters, search, delete', () async {
     final cid = await addConsumer();
-    await meters.insert(MetersCompanion.insert(consumerId: cid, mfgNo: '777123'));
+    await meters.insert(
+      MetersCompanion.insert(consumerId: cid, mfgNo: '777123'),
+    );
     final rid = await reports.createDraft(
-        consumerId: cid, type: ReportType.netMeter);
+      consumerId: cid,
+      type: ReportType.netMeter,
+    );
     var b = (await reports.loadBundle(rid))!;
     b.report = b.report.copyWith(memoNo: 'M-55');
     await reports.saveBundle(b);
@@ -140,10 +170,17 @@ void main() {
     expect(cb.columns, hasLength(4));
 
     expect(
-        await reports.watchFiltered(type: ReportType.netMeter).first, hasLength(2));
-    expect(await reports.watchFiltered(type: ReportType.amrTestCheck).first,
-        isEmpty);
-    expect(await reports.watchFiltered(subDivision: 'abbas').first, hasLength(2));
+      await reports.watchFiltered(type: ReportType.netMeter).first,
+      hasLength(2),
+    );
+    expect(
+      await reports.watchFiltered(type: ReportType.amrTestCheck).first,
+      isEmpty,
+    );
+    expect(
+      await reports.watchFiltered(subDivision: 'abbas').first,
+      hasLength(2),
+    );
 
     final s = await reports.search('777');
     expect(s.meters, hasLength(1));

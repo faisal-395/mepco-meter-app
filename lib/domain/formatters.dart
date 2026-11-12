@@ -43,6 +43,5 @@ String fmtCompact(double? v) {
 }
 
 /// Replaces {placeholders} in a template.
-String fillTemplate(String template, Map<String, String> values) =>
-    template.replaceAllMapped(RegExp(r'\{(\w+)\}'),
-        (m) => values[m[1]!] ?? m[0]!);
+String fillTemplate(String template, Map<String, String> values) => template
+    .replaceAllMapped(RegExp(r'\{(\w+)\}'), (m) => values[m[1]!] ?? m[0]!);

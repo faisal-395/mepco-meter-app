@@ -5,7 +5,12 @@ import 'formatters.dart';
 
 /// One field of section A ("Description of installation").
 class SectionAField {
-  const SectionAField(this.code, this.label, {this.numeric = false, this.date = false});
+  const SectionAField(
+    this.code,
+    this.label, {
+    this.numeric = false,
+    this.date = false,
+  });
   final String code;
   final String label;
   final bool numeric;
@@ -93,30 +98,30 @@ final sectionACells = [
 
 /// Builds the section A snapshot from a consumer row.
 Map<String, String> sectionAFromConsumer(ConsumerRow c) => {
-      'name': c.name,
-      'address': c.address,
-      'account_no': c.accountNo,
-      'tariff': c.tariff,
-      'sanctioned_load_kw': c.sanctionedLoadKw,
-      'connected_load': c.connectedLoad,
-      'industry_kind': c.industryKind,
-      'transformer_kva': c.transformerKva,
-      'transformer_make': c.transformerMake,
-      'transformer_no': c.transformerNo,
-      'ct_primary': c.ctPrimary,
-      'ct_secondary': c.ctSecondary,
-      'mf': c.mf,
-      'cable_size': c.cableSize,
-      'msb_type': c.msbType,
-      'feeder_name': c.feederName,
-      'sub_division': c.subDivision,
-      'op_division': c.opDivision,
-      'sanction_ref': c.sanctionRef,
-      'application_no': c.applicationNo,
-      'application_date': fmtDate(c.applicationDate),
-      'sco_mco_rco_no': c.scoMcoRcoNo,
-      'sco_date': fmtDate(c.scoDate),
-    };
+  'name': c.name,
+  'address': c.address,
+  'account_no': c.accountNo,
+  'tariff': c.tariff,
+  'sanctioned_load_kw': c.sanctionedLoadKw,
+  'connected_load': c.connectedLoad,
+  'industry_kind': c.industryKind,
+  'transformer_kva': c.transformerKva,
+  'transformer_make': c.transformerMake,
+  'transformer_no': c.transformerNo,
+  'ct_primary': c.ctPrimary,
+  'ct_secondary': c.ctSecondary,
+  'mf': c.mf,
+  'cable_size': c.cableSize,
+  'msb_type': c.msbType,
+  'feeder_name': c.feederName,
+  'sub_division': c.subDivision,
+  'op_division': c.opDivision,
+  'sanction_ref': c.sanctionRef,
+  'application_no': c.applicationNo,
+  'application_date': fmtDate(c.applicationDate),
+  'sco_mco_rco_no': c.scoMcoRcoNo,
+  'sco_date': fmtDate(c.scoDate),
+};
 
 /// Turns a section A snapshot back into consumer column values.
 ConsumersCompanion consumerCompanionFromSectionA(Map<String, String> a) {

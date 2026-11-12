@@ -10,27 +10,37 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-final consumersDaoProvider =
-    Provider((ref) => ConsumersDao(ref.watch(databaseProvider)));
-final metersDaoProvider =
-    Provider((ref) => MetersDao(ref.watch(databaseProvider)));
-final reportsDaoProvider =
-    Provider((ref) => ReportsDao(ref.watch(databaseProvider)));
-final settingsDaoProvider =
-    Provider((ref) => SettingsDao(ref.watch(databaseProvider)));
+final consumersDaoProvider = Provider(
+  (ref) => ConsumersDao(ref.watch(databaseProvider)),
+);
+final metersDaoProvider = Provider(
+  (ref) => MetersDao(ref.watch(databaseProvider)),
+);
+final reportsDaoProvider = Provider(
+  (ref) => ReportsDao(ref.watch(databaseProvider)),
+);
+final settingsDaoProvider = Provider(
+  (ref) => SettingsDao(ref.watch(databaseProvider)),
+);
 
 final settingsProvider = StreamProvider<Map<String, String>>(
-    (ref) => ref.watch(settingsDaoProvider).watchAll());
+  (ref) => ref.watch(settingsDaoProvider).watchAll(),
+);
 
 final consumerProvider = StreamProvider.autoDispose.family<ConsumerRow?, int>(
-    (ref, id) => ref.watch(consumersDaoProvider).watchById(id));
+  (ref, id) => ref.watch(consumersDaoProvider).watchById(id),
+);
 
-final consumerMetersProvider = StreamProvider.autoDispose.family<List<Meter>, int>(
-    (ref, id) => ref.watch(metersDaoProvider).watchForConsumer(id));
+final consumerMetersProvider = StreamProvider.autoDispose
+    .family<List<Meter>, int>(
+      (ref, id) => ref.watch(metersDaoProvider).watchForConsumer(id),
+    );
 
-final consumerReportsProvider =
-    StreamProvider.autoDispose.family<List<ReportListItem>, int>(
-        (ref, id) => ref.watch(reportsDaoProvider).watchForConsumer(id));
+final consumerReportsProvider = StreamProvider.autoDispose
+    .family<List<ReportListItem>, int>(
+      (ref, id) => ref.watch(reportsDaoProvider).watchForConsumer(id),
+    );
 
 final draftsProvider = StreamProvider.autoDispose<List<ReportListItem>>(
-    (ref) => ref.watch(reportsDaoProvider).watchDrafts());
+  (ref) => ref.watch(reportsDaoProvider).watchDrafts(),
+);

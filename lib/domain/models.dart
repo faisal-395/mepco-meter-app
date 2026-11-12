@@ -23,11 +23,11 @@ class ColumnSlot {
       (meter != null || readings.values.any((v) => v.trim().isNotEmpty));
 
   ColumnSlot copy() => ColumnSlot(
-        role: role,
-        meter: meter,
-        notApplicable: notApplicable,
-        readings: Map.of(readings),
-      );
+    role: role,
+    meter: meter,
+    notApplicable: notApplicable,
+    readings: Map.of(readings),
+  );
 }
 
 class PhaseLoadValues {
@@ -48,8 +48,8 @@ class PhaseLoadValues {
       pf.trim().isEmpty &&
       kwOverride.trim().isEmpty;
 
-  PhaseLoadValues copy() => PhaseLoadValues(
-      volts: volts, amps: amps, pf: pf, kwOverride: kwOverride);
+  PhaseLoadValues copy() =>
+      PhaseLoadValues(volts: volts, amps: amps, pf: pf, kwOverride: kwOverride);
 }
 
 class SealValues {
@@ -104,9 +104,9 @@ class ReportBundle {
   String get mfText => sectionA['mf'] ?? '';
 
   /// Empty column slots for a report type, with default N/A flags.
-  static List<ColumnSlot> emptyColumns(String type) => templateFor(type)
-      .columns
-      .map((c) =>
-          ColumnSlot(role: c.role, notApplicable: c.defaultNotApplicable))
+  static List<ColumnSlot> emptyColumns(String type) => templateFor(type).columns
+      .map(
+        (c) => ColumnSlot(role: c.role, notApplicable: c.defaultNotApplicable),
+      )
       .toList();
 }

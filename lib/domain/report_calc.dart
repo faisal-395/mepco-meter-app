@@ -52,7 +52,8 @@ class SectionC {
 }
 
 SectionC computeSectionC(ReportBundle b, Map<String, String> settings) {
-  final method = settings[SettingKeys.checkLoadMethod] ?? SettingKeys.methodAverage;
+  final method =
+      settings[SettingKeys.checkLoadMethod] ?? SettingKeys.methodAverage;
   final limit = settings[SettingKeys.permissibleErrorLimit] ?? '';
   final t = b.template;
   final r = b.report;
@@ -69,8 +70,9 @@ SectionC computeSectionC(ReportBundle b, Map<String, String> settings) {
           parseNum(l.kwOverride) ?? phaseKw(l.volts, l.amps, l.pf);
     }
   }
-  double? sideLoad(String side) =>
-      checkLoad([for (final p in phases) kw[phaseKey(side, p)]], method: method);
+  double? sideLoad(String side) => checkLoad([
+    for (final p in phases) kw[phaseKey(side, p)],
+  ], method: method);
 
   final importLoad = parseNum(r.checkLoadOverride) ?? sideLoad('import');
   final exportLoad = sideLoad('export');
@@ -152,7 +154,9 @@ String newConnectionRemarks(ReportBundle b) {
     'sco_date': g('sco_date'),
     'new_meter_count': r.newMeterCount,
     'ct_count': r.ctCount,
-    'ct_ratio': g('ct_primary').isEmpty ? '' : '${g('ct_primary')}/${g('ct_secondary')}',
+    'ct_ratio': g('ct_primary').isEmpty
+        ? ''
+        : '${g('ct_primary')}/${g('ct_secondary')}',
     'checked_load_kw': r.checkedLoadKw,
   });
 }

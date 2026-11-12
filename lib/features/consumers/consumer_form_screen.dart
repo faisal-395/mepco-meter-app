@@ -34,7 +34,9 @@ class _SectionAEditorState extends State<SectionAEditor> {
   void initState() {
     super.initState();
     final calc = mfFromCt(
-        widget.values['ct_primary'] ?? '', widget.values['ct_secondary'] ?? '');
+      widget.values['ct_primary'] ?? '',
+      widget.values['ct_secondary'] ?? '',
+    );
     final mf = widget.values['mf'] ?? '';
     _mfManual = mf.isNotEmpty && (calc == null || parseNum(mf) != calc);
   }
@@ -43,8 +45,10 @@ class _SectionAEditorState extends State<SectionAEditor> {
     final values = widget.values;
     values[code] = v;
     if ((code == 'ct_primary' || code == 'ct_secondary') && !_mfManual) {
-      final calc =
-          mfFromCt(values['ct_primary'] ?? '', values['ct_secondary'] ?? '');
+      final calc = mfFromCt(
+        values['ct_primary'] ?? '',
+        values['ct_secondary'] ?? '',
+      );
       values['mf'] = calc == null ? '' : fmtCompact(calc);
     }
     if (code == 'mf') _mfManual = v.trim().isNotEmpty;
@@ -55,30 +59,34 @@ class _SectionAEditorState extends State<SectionAEditor> {
   @override
   Widget build(BuildContext context) {
     final calc = mfFromCt(
-        widget.values['ct_primary'] ?? '', widget.values['ct_secondary'] ?? '');
-    return ResponsiveFields(children: [
-      for (final f in sectionAFields)
-        if (f.date)
-          TextDateField(
-            label: f.label,
-            value: widget.values[f.code] ?? '',
-            onChanged: (v) => _set(f.code, v),
-          )
-        else
-          AppField(
-            label: f.label,
-            value: widget.values[f.code] ?? '',
-            numeric: f.numeric,
-            enabled: widget.enabled,
-            helper: f.code == 'mf'
-                ? (calc == null
-                    ? 'CT primary / CT secondary'
-                    : 'From CT ratio: ${fmtCompact(calc)}'
-                        '${_mfManual ? ' (edited by hand)' : ''}')
-                : null,
-            onChanged: (v) => _set(f.code, v),
-          ),
-    ]);
+      widget.values['ct_primary'] ?? '',
+      widget.values['ct_secondary'] ?? '',
+    );
+    return ResponsiveFields(
+      children: [
+        for (final f in sectionAFields)
+          if (f.date)
+            TextDateField(
+              label: f.label,
+              value: widget.values[f.code] ?? '',
+              onChanged: (v) => _set(f.code, v),
+            )
+          else
+            AppField(
+              label: f.label,
+              value: widget.values[f.code] ?? '',
+              numeric: f.numeric,
+              enabled: widget.enabled,
+              helper: f.code == 'mf'
+                  ? (calc == null
+                        ? 'CT primary / CT secondary'
+                        : 'From CT ratio: ${fmtCompact(calc)}'
+                              '${_mfManual ? ' (edited by hand)' : ''}')
+                  : null,
+              onChanged: (v) => _set(f.code, v),
+            ),
+      ],
+    );
   }
 }
 
@@ -153,7 +161,9 @@ class _ConsumerFormScreenState extends ConsumerState<ConsumerFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.consumerId == null ? 'New consumer' : 'Edit consumer'),
+        title: Text(
+          widget.consumerId == null ? 'New consumer' : 'Edit consumer',
+        ),
         actions: [
           TextButton.icon(
             onPressed: _values == null || _saving ? null : _save,

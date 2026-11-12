@@ -24,21 +24,25 @@ class HomeScreen extends ConsumerWidget {
         onTap: () => startNewReport(context, ref),
       ),
       _HomeButton(
-          icon: Icons.people,
-          label: 'Consumers',
-          onTap: () => context.push('/consumers')),
+        icon: Icons.people,
+        label: 'Consumers',
+        onTap: () => context.push('/consumers'),
+      ),
       _HomeButton(
-          icon: Icons.list_alt,
-          label: 'Reports',
-          onTap: () => context.push('/reports')),
+        icon: Icons.list_alt,
+        label: 'Reports',
+        onTap: () => context.push('/reports'),
+      ),
       _HomeButton(
-          icon: Icons.search,
-          label: 'Search',
-          onTap: () => context.push('/search')),
+        icon: Icons.search,
+        label: 'Search',
+        onTap: () => context.push('/search'),
+      ),
       _HomeButton(
-          icon: Icons.settings,
-          label: 'Settings',
-          onTap: () => context.push('/settings')),
+        icon: Icons.settings,
+        label: 'Settings',
+        onTap: () => context.push('/settings'),
+      ),
     ];
 
     final draftList = drafts.when(
@@ -47,20 +51,24 @@ class HomeScreen extends ConsumerWidget {
       data: (items) => items.isEmpty
           ? const Padding(
               padding: EdgeInsets.all(16),
-              child: Text('No drafts. Tap "New report" to start one.'))
-          : Column(children: [
-              for (final d in items)
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.edit_note),
-                    title: Text(d.consumer.name),
-                    subtitle: Text(
-                        '${templateFor(d.report.reportType).shortName}  •  ${d.consumer.accountNo}  •  ${fmtDate(d.report.visitDate)}'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/reports/${d.report.id}'),
+              child: Text('No drafts. Tap "New report" to start one.'),
+            )
+          : Column(
+              children: [
+                for (final d in items)
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.edit_note),
+                      title: Text(d.consumer.name),
+                      subtitle: Text(
+                        '${templateFor(d.report.reportType).shortName}  •  ${d.consumer.accountNo}  •  ${fmtDate(d.report.visitDate)}',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/reports/${d.report.id}'),
+                    ),
                   ),
-                ),
-            ]),
+              ],
+            ),
     );
 
     final wide = isWide(context);
@@ -74,10 +82,7 @@ class HomeScreen extends ConsumerWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 360,
-                  child: Column(children: buttons),
-                ),
+                SizedBox(width: 360, child: Column(children: buttons)),
                 const SizedBox(width: 24),
                 Expanded(
                   child: Column(

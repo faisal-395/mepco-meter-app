@@ -17,8 +17,11 @@ String defaultTeamText(Map<String, String> s) {
 }
 
 /// Asks for the report type (and consumer if not given), creates a draft and opens the wizard.
-Future<void> startNewReport(BuildContext context, WidgetRef ref,
-    {int? consumerId}) async {
+Future<void> startNewReport(
+  BuildContext context,
+  WidgetRef ref, {
+  int? consumerId,
+}) async {
   final type = await showDialog<String>(
     context: context,
     builder: (c) => SimpleDialog(
@@ -31,11 +34,17 @@ Future<void> startNewReport(BuildContext context, WidgetRef ref,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(templateFor(t).shortName,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w600)),
-                Text(templateFor(t).title,
-                    style: const TextStyle(color: Colors.black54)),
+                Text(
+                  templateFor(t).shortName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  templateFor(t).title,
+                  style: const TextStyle(color: Colors.black54),
+                ),
               ],
             ),
           ),
@@ -46,7 +55,9 @@ Future<void> startNewReport(BuildContext context, WidgetRef ref,
   consumerId ??= await context.push<int>('/consumers/pick');
   if (consumerId == null || !context.mounted) return;
   final settings = await ref.read(settingsDaoProvider).getAll();
-  final id = await ref.read(reportsDaoProvider).createDraft(
+  final id = await ref
+      .read(reportsDaoProvider)
+      .createDraft(
         consumerId: consumerId,
         type: type,
         teamText: defaultTeamText(settings),

@@ -32,8 +32,9 @@ class AppField extends StatefulWidget {
 }
 
 class _AppFieldState extends State<AppField> {
-  late final TextEditingController _c =
-      TextEditingController(text: widget.value);
+  late final TextEditingController _c = TextEditingController(
+    text: widget.value,
+  );
 
   @override
   void didUpdateWidget(AppField old) {
@@ -64,7 +65,9 @@ class _AppFieldState extends State<AppField> {
         minLines: 1,
         keyboardType: widget.numeric
             ? const TextInputType.numberWithOptions(decimal: true, signed: true)
-            : (widget.maxLines > 1 ? TextInputType.multiline : TextInputType.text),
+            : (widget.maxLines > 1
+                  ? TextInputType.multiline
+                  : TextInputType.text),
         inputFormatters: widget.numeric
             ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\-]'))]
             : null,
@@ -144,10 +147,10 @@ class TextDateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DateField(
-        label: label,
-        value: parseDate(value),
-        onChanged: (d) => onChanged(fmtDate(d)),
-      );
+    label: label,
+    value: parseDate(value),
+    onChanged: (d) => onChanged(fmtDate(d)),
+  );
 }
 
 /// Lays children out in two columns on wide screens, one column on phones.
@@ -157,17 +160,21 @@ class ResponsiveFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, c) {
-      if (c.maxWidth < 600) {
-        return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
-      }
-      final w = (c.maxWidth - 16) / 2;
-      return Wrap(
-        spacing: 16,
-        children: [for (final ch in children) SizedBox(width: w, child: ch)],
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, c) {
+        if (c.maxWidth < 600) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          );
+        }
+        final w = (c.maxWidth - 16) / 2;
+        return Wrap(
+          spacing: 16,
+          children: [for (final ch in children) SizedBox(width: w, child: ch)],
+        );
+      },
+    );
   }
 }
 
@@ -176,13 +183,13 @@ class SectionTitle extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 16, bottom: 6),
-        child: Text(text,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
-      );
+    padding: const EdgeInsets.only(top: 16, bottom: 6),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.titleMedium
+          ?.copyWith(fontWeight: FontWeight.bold),
+    ),
+  );
 }
 
 /// Yellow banner listing warnings. Warnings never block saving.
@@ -211,7 +218,11 @@ class WarningBanner extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber, size: 20, color: Colors.brown),
+                  const Icon(
+                    Icons.warning_amber,
+                    size: 20,
+                    color: Colors.brown,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(child: Text(w)),
                 ],
@@ -223,8 +234,13 @@ class WarningBanner extends StatelessWidget {
   }
 }
 
-Future<bool> confirm(BuildContext context, String title, String message,
-    {String ok = 'Yes', String cancel = 'No'}) async {
+Future<bool> confirm(
+  BuildContext context,
+  String title,
+  String message, {
+  String ok = 'Yes',
+  String cancel = 'No',
+}) async {
   final r = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
@@ -232,7 +248,9 @@ Future<bool> confirm(BuildContext context, String title, String message,
       content: Text(message),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(c, false), child: Text(cancel)),
+          onPressed: () => Navigator.pop(c, false),
+          child: Text(cancel),
+        ),
         FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(ok)),
       ],
     ),
@@ -241,16 +259,15 @@ Future<bool> confirm(BuildContext context, String title, String message,
 }
 
 void showSnack(BuildContext context, String text) {
-  ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(text)));
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
 /// Shows an AsyncValue's error or a spinner.
 Widget loadingOrError(Object? error) => Center(
-      child: error == null
-          ? const CircularProgressIndicator()
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Error: $error'),
-            ),
-    );
+  child: error == null
+      ? const CircularProgressIndicator()
+      : Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text('Error: $error'),
+        ),
+);

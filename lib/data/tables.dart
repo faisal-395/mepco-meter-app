@@ -107,9 +107,11 @@ class ReportMeters extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get reportId =>
       integer().references(Reports, #id, onDelete: KeyAction.cascade)();
-  IntColumn get meterId => integer()
-      .nullable()
-      .references(Meters, #id, onDelete: KeyAction.setNull)();
+  IntColumn get meterId => integer().nullable().references(
+    Meters,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
 
   /// removed / amr / existing / billing / backup / backup_removed
   TextColumn get columnRole => text()();

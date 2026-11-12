@@ -32,8 +32,10 @@ void main() {
 
     test('totals within 0.02', () {
       expect(checkTotal('2556.74', '508.62', '2048.11')!.ok, isTrue);
-      expect(checkTotal('2556.74', '508.62', '2048.11')!.difference,
-          closeTo(0.01, 1e-9));
+      expect(
+        checkTotal('2556.74', '508.62', '2048.11')!.difference,
+        closeTo(0.01, 1e-9),
+      );
       expect(checkTotal('100', '50', '49.97')!.ok, isFalse);
       expect(checkTotal('', '1', '2'), isNull);
     });
@@ -48,7 +50,10 @@ void main() {
         phaseKw('428', '272', '0.94'),
       ];
       expect(checkLoad(kws), closeTo(183.33, 0.01));
-      expect(checkLoad(kws, method: SettingKeys.methodSum), closeTo(549.98, 0.02));
+      expect(
+        checkLoad(kws, method: SettingKeys.methodSum),
+        closeTo(549.98, 0.02),
+      );
       expect(percentError(14.72, 14.7842), closeTo(-0.43, 0.01));
       expect(withinLimit(-0.43, ''), isNull);
       expect(withinLimit(-0.43, '1'), isTrue);
@@ -81,7 +86,10 @@ void main() {
       }
       expect(amrTestCheckTemplate.params.first.label, 'Current Date');
       expect(amrTestCheckTemplate.params.last.label, 'Current P.F');
-      expect(netMeterTemplate.params.last.label, 'Export Instant Total active KW');
+      expect(
+        netMeterTemplate.params.last.label,
+        'Export Instant Total active KW',
+      );
     });
   });
 
@@ -119,8 +127,10 @@ void main() {
       final w = validateReport(b, settings);
       expect(w.where((x) => x.section == 'Readings'), isEmpty);
       // With a 1 % limit, -1.8 % is outside.
-      final c2 = computeSectionC(
-          b, {...settings, SettingKeys.permissibleErrorLimit: '1'});
+      final c2 = computeSectionC(b, {
+        ...settings,
+        SettingKeys.permissibleErrorLimit: '1',
+      });
       expect(c2.within, isFalse);
     });
 
@@ -130,14 +140,20 @@ void main() {
         final col = b.column(role);
         for (final rule in netMeterTemplate.totals) {
           final chk = totalCheckFor(col, rule)!;
-          expect(chk.difference, closeTo(0, 1e-9), reason: '$role ${rule.total}');
+          expect(
+            chk.difference,
+            closeTo(0, 1e-9),
+            reason: '$role ${rule.total}',
+          );
         }
       }
       final c = computeSectionC(b, settings);
       expect(c.instantImport[ColumnRole.billing], 16.02);
       expect(c.instantImport[ColumnRole.backup], 16.02);
-      expect(validateReport(b, settings).where((x) => x.section == 'Readings'),
-          isEmpty);
+      expect(
+        validateReport(b, settings).where((x) => x.section == 'Readings'),
+        isEmpty,
+      );
     });
 
     test('3. NEW_CONNECTION', () async {
@@ -152,13 +168,18 @@ void main() {
       expect(b.report.remarks, contains('M/S: Test School on Dated 05-11-26'));
       expect(b.report.remarks, contains('(4) no. 100/5 Amp CTs'));
       expect(b.report.remarks, contains('(14.78 KW)'));
-      expect(b.seal('TFORMER', ColumnRole.amr).postalOrder, 'TA-900009-10-11-12');
+      expect(
+        b.seal('TFORMER', ColumnRole.amr).postalOrder,
+        'TA-900009-10-11-12',
+      );
     });
 
     test('regression warning against an earlier visit', () async {
       final b = (await dao.loadBundle(ids[0]))!;
-      final w = regressionWarnings(b.template, b.column(ColumnRole.amr),
-          {'kwh_total': '3000', 'reset_no': '08'});
+      final w = regressionWarnings(b.template, b.column(ColumnRole.amr), {
+        'kwh_total': '3000',
+        'reset_no': '08',
+      });
       expect(w, hasLength(1));
       expect(w.first.message, contains('Current Total KWH'));
     });

@@ -46,49 +46,73 @@ class ConsumerDetailBody extends ConsumerWidget {
             Text('${c.accountNo}  /  ${c.tariff}'),
             if (c.address.isNotEmpty) Text(c.address),
             const SizedBox(height: 8),
-            Wrap(spacing: 16, runSpacing: 4, children: [
-              _kv('Sub Division', c.subDivision),
-              _kv('Division', c.opDivision),
-              _kv('Sanctioned', c.sanctionedLoadKw.isEmpty ? '' : '${c.sanctionedLoadKw} KW'),
-              _kv('Industry', c.industryKind),
-              _kv('Transformer', c.transformerKva.isEmpty ? '' : '${c.transformerKva} KVA'),
-              _kv('CT', c.ctPrimary.isEmpty ? '' : '${c.ctPrimary}/${c.ctSecondary}'),
-              _kv('MF', c.mf),
-              _kv('Cable', c.cableSize),
-              _kv('MSB', c.msbType),
-            ]),
+            Wrap(
+              spacing: 16,
+              runSpacing: 4,
+              children: [
+                _kv('Sub Division', c.subDivision),
+                _kv('Division', c.opDivision),
+                _kv(
+                  'Sanctioned',
+                  c.sanctionedLoadKw.isEmpty ? '' : '${c.sanctionedLoadKw} KW',
+                ),
+                _kv('Industry', c.industryKind),
+                _kv(
+                  'Transformer',
+                  c.transformerKva.isEmpty ? '' : '${c.transformerKva} KVA',
+                ),
+                _kv(
+                  'CT',
+                  c.ctPrimary.isEmpty ? '' : '${c.ctPrimary}/${c.ctSecondary}',
+                ),
+                _kv('MF', c.mf),
+                _kv('Cable', c.cableSize),
+                _kv('MSB', c.msbType),
+              ],
+            ),
             const SizedBox(height: 12),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              FilledButton.icon(
-                onPressed: () => startNewReport(context, ref, consumerId: c.id),
-                icon: const Icon(Icons.note_add),
-                label: const Text('New report'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => context.push('/consumers/${c.id}/edit'),
-                icon: const Icon(Icons.edit),
-                label: const Text('Edit'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => context.push('/consumers/${c.id}/history'),
-                icon: const Icon(Icons.timeline),
-                label: const Text('History'),
-              ),
-            ]),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: () =>
+                      startNewReport(context, ref, consumerId: c.id),
+                  icon: const Icon(Icons.note_add),
+                  label: const Text('New report'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/consumers/${c.id}/edit'),
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/consumers/${c.id}/history'),
+                  icon: const Icon(Icons.timeline),
+                  label: const Text('History'),
+                ),
+              ],
+            ),
             const SectionTitle('Meters'),
             if (meters.isEmpty) const Text('No meters yet.'),
             for (final m in meters)
               Card(
                 child: ListTile(
-                  leading: Icon(m.status == 'active'
-                      ? Icons.electric_meter
-                      : Icons.remove_circle_outline),
+                  leading: Icon(
+                    m.status == 'active'
+                        ? Icons.electric_meter
+                        : Icons.remove_circle_outline,
+                  ),
                   title: Text('${m.mfgNo}  ${m.make}'),
-                  subtitle: Text([
-                    m.meterKind,
-                    if (m.mf.isNotEmpty) 'MF ${m.mf}',
-                    m.status == 'active' ? 'Active' : 'Removed ${fmtDate(m.removedOn)}',
-                  ].join('  •  ')),
+                  subtitle: Text(
+                    [
+                      m.meterKind,
+                      if (m.mf.isNotEmpty) 'MF ${m.mf}',
+                      m.status == 'active'
+                          ? 'Active'
+                          : 'Removed ${fmtDate(m.removedOn)}',
+                    ].join('  •  '),
+                  ),
                   trailing: const Icon(Icons.edit),
                   onTap: () => context.push('/meters/${m.id}/edit'),
                 ),
@@ -106,13 +130,17 @@ class ConsumerDetailBody extends ConsumerWidget {
             for (final r in reports)
               Card(
                 child: ListTile(
-                  leading: Icon(r.report.status == 'final'
-                      ? Icons.verified
-                      : Icons.edit_note),
+                  leading: Icon(
+                    r.report.status == 'final'
+                        ? Icons.verified
+                        : Icons.edit_note,
+                  ),
                   title: Text(
-                      '${templateFor(r.report.reportType).shortName}  •  ${fmtDate(r.report.visitDate)}'),
+                    '${templateFor(r.report.reportType).shortName}  •  ${fmtDate(r.report.visitDate)}',
+                  ),
                   subtitle: Text(
-                      'Memo ${r.report.memoNo.isEmpty ? '-' : r.report.memoNo}  •  ${r.report.status}'),
+                    'Memo ${r.report.memoNo.isEmpty ? '-' : r.report.memoNo}  •  ${r.report.status}',
+                  ),
                   onTap: () => context.push('/reports/${r.report.id}'),
                 ),
               ),
@@ -136,10 +164,17 @@ class ConsumerDetailBody extends ConsumerWidget {
     );
   }
 
-  Future<void> _delete(BuildContext context, WidgetRef ref, ConsumerRow c) async {
-    final ok = await confirm(context, 'Delete consumer?',
-        'This deletes ${c.name} with all meters and reports. This cannot be undone.',
-        ok: 'Delete');
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    ConsumerRow c,
+  ) async {
+    final ok = await confirm(
+      context,
+      'Delete consumer?',
+      'This deletes ${c.name} with all meters and reports. This cannot be undone.',
+      ok: 'Delete',
+    );
     if (!ok) return;
     await ref.read(consumersDaoProvider).delete(c.id);
     if (context.mounted && context.canPop()) context.pop();
@@ -147,8 +182,18 @@ class ConsumerDetailBody extends ConsumerWidget {
 
   Widget _kv(String k, String v) => v.isEmpty
       ? const SizedBox.shrink()
-      : Text.rich(TextSpan(children: [
-          TextSpan(text: '$k: ', style: const TextStyle(color: Colors.black54)),
-          TextSpan(text: v, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ]));
+      : Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '$k: ',
+                style: const TextStyle(color: Colors.black54),
+              ),
+              TextSpan(
+                text: v,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        );
 }

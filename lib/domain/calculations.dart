@@ -68,7 +68,10 @@ double? phaseKw(String? volts, String? amps, String? pf) {
 
 /// Check load from the per-phase kW values (nulls are ignored).
 /// Method: average_of_phases (default) or sum_per_phase.
-double? checkLoad(List<double?> phaseKws, {String method = SettingKeys.methodAverage}) {
+double? checkLoad(
+  List<double?> phaseKws, {
+  String method = SettingKeys.methodAverage,
+}) {
   final vals = phaseKws.whereType<double>().toList();
   if (vals.isEmpty) return null;
   final sum = vals.fold<double>(0, (a, b) => a + b);

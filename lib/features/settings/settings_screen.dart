@@ -35,8 +35,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _save() async {
     final dao = ref.read(settingsDaoProvider);
     final v = _values!;
-    v[SettingKeys.ccList] =
-        _cc.map((l) => l.trim()).where((l) => l.isNotEmpty).join('\n');
+    v[SettingKeys.ccList] = _cc
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .join('\n');
     for (final k in [
       ...SettingKeys.labels.keys,
       SettingKeys.checkLoadMethod,
@@ -55,9 +57,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: const Text('Settings'),
         actions: [
           TextButton.icon(
-              onPressed: v == null ? null : _save,
-              icon: const Icon(Icons.save),
-              label: const Text('Save')),
+            onPressed: v == null ? null : _save,
+            icon: const Icon(Icons.save),
+            label: const Text('Save'),
+          ),
         ],
       ),
       body: v == null
@@ -66,37 +69,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 const SectionTitle('Office and officers'),
-                ResponsiveFields(children: [
-                  for (final e in SettingKeys.labels.entries)
-                    AppField(
-                      label: e.value,
-                      value: v[e.key] ?? '',
-                      numeric: e.key == SettingKeys.permissibleErrorLimit,
-                      helper: e.key == SettingKeys.permissibleErrorLimit
-                          ? 'Empty = no automatic within-limit check'
-                          : null,
-                      onChanged: (x) => v[e.key] = x,
-                    ),
-                ]),
+                ResponsiveFields(
+                  children: [
+                    for (final e in SettingKeys.labels.entries)
+                      AppField(
+                        label: e.value,
+                        value: v[e.key] ?? '',
+                        numeric: e.key == SettingKeys.permissibleErrorLimit,
+                        helper: e.key == SettingKeys.permissibleErrorLimit
+                            ? 'Empty = no automatic within-limit check'
+                            : null,
+                        onChanged: (x) => v[e.key] = x,
+                      ),
+                  ],
+                ),
                 const SectionTitle('Check load method'),
                 RadioGroup<String>(
                   groupValue: v[SettingKeys.checkLoadMethod],
                   onChanged: (x) =>
                       setState(() => v[SettingKeys.checkLoadMethod] = x!),
-                  child: const Column(children: [
-                    RadioListTile(
-                      value: SettingKeys.methodAverage,
-                      title: Text('Average of the three phases'),
-                    ),
-                    RadioListTile(
-                      value: SettingKeys.methodSum,
-                      title: Text('Sum of the three phases'),
-                    ),
-                  ]),
+                  child: const Column(
+                    children: [
+                      RadioListTile(
+                        value: SettingKeys.methodAverage,
+                        title: Text('Average of the three phases'),
+                      ),
+                      RadioListTile(
+                        value: SettingKeys.methodSum,
+                        title: Text('Sum of the three phases'),
+                      ),
+                    ],
+                  ),
                 ),
                 const SectionTitle('C.C list (printed on page 2)'),
-                const Text('Use {division} for the consumer\'s OP division.',
-                    style: TextStyle(color: Colors.black54)),
+                const Text(
+                  'Use {division} for the consumer\'s OP division.',
+                  style: TextStyle(color: Colors.black54),
+                ),
                 for (var i = 0; i < _cc.length; i++)
                   Row(
                     key: ObjectKey(_cc[i].hashCode ^ i),
@@ -117,24 +126,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ],
                   ),
-                Wrap(spacing: 8, children: [
-                  TextButton.icon(
-                    onPressed: () => setState(() => _cc.add('')),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add line'),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => setState(
-                        () => _cc = List.of(SettingKeys.defaultCcList)),
-                    icon: const Icon(Icons.restore),
-                    label: const Text('Reset to default'),
-                  ),
-                ]),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => setState(() => _cc.add('')),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add line'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => setState(
+                        () => _cc = List.of(SettingKeys.defaultCcList),
+                      ),
+                      icon: const Icon(Icons.restore),
+                      label: const Text('Reset to default'),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                    onPressed: _save,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Save settings')),
+                  onPressed: _save,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Save settings'),
+                ),
                 const Divider(height: 40),
                 const BackupSection(),
               ],

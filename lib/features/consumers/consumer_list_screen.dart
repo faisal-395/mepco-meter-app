@@ -10,7 +10,8 @@ import 'consumer_detail_screen.dart';
 
 final _consumerSearchProvider = StreamProvider.autoDispose
     .family<List<ConsumerRow>, String>(
-        (ref, q) => ref.watch(consumersDaoProvider).watchAll(query: q));
+      (ref, q) => ref.watch(consumersDaoProvider).watchAll(query: q),
+    );
 
 /// Consumer list with search. On a tablet the detail opens in the right pane.
 class ConsumerListScreen extends ConsumerStatefulWidget {
@@ -71,7 +72,8 @@ class _ConsumerListScreenState extends ConsumerState<ConsumerListScreen> {
                         selected: wide && c.id == _selected,
                         title: Text(c.name.isEmpty ? '(no name)' : c.name),
                         subtitle: Text(
-                            '${c.accountNo}  ${c.tariff}  ${c.subDivision}'),
+                          '${c.accountNo}  ${c.tariff}  ${c.subDivision}',
+                        ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           if (widget.pickMode) {
@@ -92,7 +94,8 @@ class _ConsumerListScreenState extends ConsumerState<ConsumerListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-          title: Text(widget.pickMode ? 'Pick consumer' : 'Consumers')),
+        title: Text(widget.pickMode ? 'Pick consumer' : 'Consumers'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _add,
         icon: const Icon(Icons.person_add),
@@ -107,7 +110,9 @@ class _ConsumerListScreenState extends ConsumerState<ConsumerListScreen> {
                   child: _selected == null
                       ? const Center(child: Text('Select a consumer'))
                       : ConsumerDetailBody(
-                          key: ValueKey(_selected), consumerId: _selected!),
+                          key: ValueKey(_selected),
+                          consumerId: _selected!,
+                        ),
                 ),
               ],
             )

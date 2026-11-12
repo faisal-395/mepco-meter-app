@@ -10,7 +10,12 @@ import '../../domain/report_templates.dart';
 
 /// Add or edit a meter. Pops with the meter id after saving.
 class MeterFormScreen extends ConsumerStatefulWidget {
-  const MeterFormScreen({super.key, this.consumerId, this.meterId, this.defaultKind});
+  const MeterFormScreen({
+    super.key,
+    this.consumerId,
+    this.meterId,
+    this.defaultKind,
+  });
   final int? consumerId;
   final int? meterId;
   final String? defaultKind;
@@ -82,7 +87,9 @@ class _MeterFormScreenState extends ConsumerState<MeterFormScreen> {
       commId: Value(commId.trim()),
       status: Value(status),
       installedOn: Value(installedOn),
-      removedOn: Value(status == 'removed' ? (removedOn ?? DateTime.now()) : null),
+      removedOn: Value(
+        status == 'removed' ? (removedOn ?? DateTime.now()) : null,
+      ),
     );
     final dao = ref.read(metersDaoProvider);
     int id;
@@ -96,9 +103,12 @@ class _MeterFormScreenState extends ConsumerState<MeterFormScreen> {
   }
 
   Future<void> _delete() async {
-    final ok = await confirm(context, 'Delete meter?',
-        'Reports that used this meter keep their readings but lose the meter link.',
-        ok: 'Delete');
+    final ok = await confirm(
+      context,
+      'Delete meter?',
+      'Reports that used this meter keep their readings but lose the meter link.',
+      ok: 'Delete',
+    );
     if (!ok) return;
     await ref.read(metersDaoProvider).delete(widget.meterId!);
     if (mounted) context.pop();
@@ -111,9 +121,10 @@ class _MeterFormScreenState extends ConsumerState<MeterFormScreen> {
         title: Text(widget.meterId == null ? 'New meter' : 'Edit meter'),
         actions: [
           TextButton.icon(
-              onPressed: _loaded ? _save : null,
-              icon: const Icon(Icons.save),
-              label: const Text('Save')),
+            onPressed: _loaded ? _save : null,
+            icon: const Icon(Icons.save),
+            label: const Text('Save'),
+          ),
         ],
       ),
       body: !_loaded
@@ -121,62 +132,102 @@ class _MeterFormScreenState extends ConsumerState<MeterFormScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                ResponsiveFields(children: [
-                  AppField(label: 'MFG No', value: mfgNo, onChanged: (v) => mfgNo = v),
-                  AppField(label: 'Make', value: make, onChanged: (v) => make = v),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: DropdownButtonFormField<String>(
-                      initialValue: meterKinds.contains(kind) ? kind : 'AMR',
-                      decoration: const InputDecoration(labelText: 'Meter kind'),
-                      items: [
-                        for (final k in meterKinds)
-                          DropdownMenuItem(value: k, child: Text(k)),
-                      ],
-                      onChanged: (v) => setState(() => kind = v ?? 'AMR'),
+                ResponsiveFields(
+                  children: [
+                    AppField(
+                      label: 'MFG No',
+                      value: mfgNo,
+                      onChanged: (v) => mfgNo = v,
                     ),
-                  ),
-                  AppField(label: 'Amps', value: amps, onChanged: (v) => amps = v),
-                  AppField(label: 'Volts', value: volts, onChanged: (v) => volts = v),
-                  AppField(
+                    AppField(
+                      label: 'Make',
+                      value: make,
+                      onChanged: (v) => make = v,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: DropdownButtonFormField<String>(
+                        initialValue: meterKinds.contains(kind) ? kind : 'AMR',
+                        decoration: const InputDecoration(
+                          labelText: 'Meter kind',
+                        ),
+                        items: [
+                          for (final k in meterKinds)
+                            DropdownMenuItem(value: k, child: Text(k)),
+                        ],
+                        onChanged: (v) => setState(() => kind = v ?? 'AMR'),
+                      ),
+                    ),
+                    AppField(
+                      label: 'Amps',
+                      value: amps,
+                      onChanged: (v) => amps = v,
+                    ),
+                    AppField(
+                      label: 'Volts',
+                      value: volts,
+                      onChanged: (v) => volts = v,
+                    ),
+                    AppField(
                       label: 'Meter constant (imp/kWh/kVARh)',
                       value: constant,
-                      onChanged: (v) => constant = v),
-                  AppField(
+                      onChanged: (v) => constant = v,
+                    ),
+                    AppField(
                       label: 'M.F',
                       value: mf,
                       numeric: true,
                       helper: 'Printed as "R x MF"',
-                      onChanged: (v) => mf = v),
-                  AppField(label: 'SIM No', value: simNo, onChanged: (v) => simNo = v),
-                  AppField(label: 'Comm ID', value: commId, onChanged: (v) => commId = v),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: DropdownButtonFormField<String>(
-                      initialValue: status,
-                      decoration: const InputDecoration(labelText: 'Status'),
-                      items: const [
-                        DropdownMenuItem(value: 'active', child: Text('Active')),
-                        DropdownMenuItem(value: 'removed', child: Text('Removed')),
-                      ],
-                      onChanged: (v) => setState(() => status = v ?? 'active'),
+                      onChanged: (v) => mf = v,
                     ),
-                  ),
-                  DateField(
+                    AppField(
+                      label: 'SIM No',
+                      value: simNo,
+                      onChanged: (v) => simNo = v,
+                    ),
+                    AppField(
+                      label: 'Comm ID',
+                      value: commId,
+                      onChanged: (v) => commId = v,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: DropdownButtonFormField<String>(
+                        initialValue: status,
+                        decoration: const InputDecoration(labelText: 'Status'),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'active',
+                            child: Text('Active'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'removed',
+                            child: Text('Removed'),
+                          ),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => status = v ?? 'active'),
+                      ),
+                    ),
+                    DateField(
                       label: 'Installed on',
                       value: installedOn,
-                      onChanged: (d) => setState(() => installedOn = d)),
-                  if (status == 'removed')
-                    DateField(
+                      onChanged: (d) => setState(() => installedOn = d),
+                    ),
+                    if (status == 'removed')
+                      DateField(
                         label: 'Removed on',
                         value: removedOn,
-                        onChanged: (d) => setState(() => removedOn = d)),
-                ]),
+                        onChanged: (d) => setState(() => removedOn = d),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 FilledButton.icon(
-                    onPressed: _save,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Save meter')),
+                  onPressed: _save,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Save meter'),
+                ),
                 if (widget.meterId != null)
                   Align(
                     alignment: Alignment.centerLeft,
