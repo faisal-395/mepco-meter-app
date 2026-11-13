@@ -3,6 +3,11 @@ name: Build APK
 on:
   push:
     branches: [main, 'claude/**']
+    # Don't spend build minutes when only documents change.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'tool/**'
   workflow_dispatch:
 
 permissions:
@@ -70,12 +75,6 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --build-number=${{ github.run_number }}
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-${{ github.run_number }}
-          path: build/app/outputs/flutter-apk/app-release.apk
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -86,3 +85,24 @@ jobs:
             Automatic build from `${{ github.ref_name }}` (commit ${{ github.sha }}).
             Download **app-release.apk** below and open it on your phone to install.
           files: build/app/outputs/flutter-apk/app-release.apk
+
+      # Keep only the newest APK: delete older releases, their tags and any
+      # stored workflow artifacts, so the repository stays small.
+      - name: Remove old releases and artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          KEEP: build-${{ github.run_number }}
+        run: |
+          gh release list --repo "$REPO" --limit 100 --json tagName --jq '.[].tagName' |
+          while read -r tag; do
+            if [ "$tag" != "$KEEP" ]; then
+              echo "Deleting release $tag"
+              gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag
+            fi
+          done
+          gh api "repos/$REPO/actions/artifacts" --paginate --jq '.artifacts[].id' |
+          while read -r id; do
+            echo "Deleting artifact $id"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id"
+          done
