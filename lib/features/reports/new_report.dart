@@ -10,8 +10,8 @@ import '../../domain/settings_keys.dart';
 String defaultTeamText(Map<String, String> s) {
   final parts = <String>[
     if ((s[SettingKeys.testInspector] ?? '').isNotEmpty)
-      '${s[SettingKeys.testInspector]} Test Inspector M&T',
-    if ((s[SettingKeys.ta] ?? '').isNotEmpty) '${s[SettingKeys.ta]} T.A M&T',
+      '${s[SettingKeys.testInspector]} (TI)',
+    if ((s[SettingKeys.ta] ?? '').isNotEmpty) '${s[SettingKeys.ta]} (T.A)',
   ];
   return parts.join(', ');
 }

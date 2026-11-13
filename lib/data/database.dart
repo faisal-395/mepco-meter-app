@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -53,7 +53,11 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      // Add future migrations here, step by step. Never drop user data.
+      // Step by step. Never drop user data.
+      if (from < 2) {
+        await m.addColumn(consumers, consumers.ctVaBurden);
+        await m.addColumn(reports, reports.loadType);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

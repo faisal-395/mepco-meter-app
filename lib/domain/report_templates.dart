@@ -349,8 +349,8 @@ const netMeterTemplate = ReportTemplate(
   shortName: 'Net Meter',
   title: 'Description of Installation of Bi-Direction Meter (Net Meter)',
   columns: [
-    ColumnDef(ColumnRole.billing, 'Billing Net Meter'),
-    ColumnDef(ColumnRole.backup, 'Backup Net Meter'),
+    ColumnDef(ColumnRole.billing, 'Billing NET Meter'),
+    ColumnDef(ColumnRole.backup, 'B/up NET Meter'),
     ColumnDef(ColumnRole.removed, 'Removed Meter', defaultNotApplicable: true),
     ColumnDef(
       ColumnRole.backupRemoved,

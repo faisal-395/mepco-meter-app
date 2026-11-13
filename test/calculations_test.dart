@@ -165,9 +165,12 @@ void main() {
       expect(c.phaseKw[phaseKey('import', 'B')], closeTo(15.02, 0.01));
       expect(c.importCheckLoad, closeTo(14.78, 0.01));
       expect(c.errorImport[ColumnRole.amr], closeTo(-0.43, 0.01));
-      expect(b.report.remarks, contains('M/S: Test School on Dated 05-11-26'));
-      expect(b.report.remarks, contains('(4) no. 100/5 Amp CTs'));
-      expect(b.report.remarks, contains('(14.78 KW)'));
+      expect(
+        newConnectionRemarks(b),
+        contains('M/S: Test School on Dated 05-11-26'),
+      );
+      expect(newConnectionRemarks(b), contains('(4) no. 100/5 Amp CTs'));
+      expect(newConnectionRemarks(b), contains('(14.78 KW)'));
       expect(
         b.seal('TFORMER', ColumnRole.amr).postalOrder,
         'TA-900009-10-11-12',

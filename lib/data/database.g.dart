@@ -186,6 +186,18 @@ class $ConsumersTable extends Consumers
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _ctVaBurdenMeta = const VerificationMeta(
+    'ctVaBurden',
+  );
+  @override
+  late final GeneratedColumn<String> ctVaBurden = GeneratedColumn<String>(
+    'ct_va_burden',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _mfMeta = const VerificationMeta('mf');
   @override
   late final GeneratedColumn<String> mf = GeneratedColumn<String>(
@@ -342,6 +354,7 @@ class $ConsumersTable extends Consumers
     transformerNo,
     ctPrimary,
     ctSecondary,
+    ctVaBurden,
     mf,
     cableSize,
     msbType,
@@ -477,6 +490,15 @@ class $ConsumersTable extends Consumers
         ctSecondary.isAcceptableOrUnknown(
           data['ct_secondary']!,
           _ctSecondaryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ct_va_burden')) {
+      context.handle(
+        _ctVaBurdenMeta,
+        ctVaBurden.isAcceptableOrUnknown(
+          data['ct_va_burden']!,
+          _ctVaBurdenMeta,
         ),
       );
     }
@@ -630,6 +652,10 @@ class $ConsumersTable extends Consumers
         DriftSqlType.string,
         data['${effectivePrefix}ct_secondary'],
       )!,
+      ctVaBurden: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ct_va_burden'],
+      )!,
       mf: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}mf'],
@@ -703,6 +729,9 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
   final String transformerNo;
   final String ctPrimary;
   final String ctSecondary;
+
+  /// Added in schema v2: "VA Burden" of the CTs (section A cell 9).
+  final String ctVaBurden;
   final String mf;
   final String cableSize;
   final String msbType;
@@ -731,6 +760,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
     required this.transformerNo,
     required this.ctPrimary,
     required this.ctSecondary,
+    required this.ctVaBurden,
     required this.mf,
     required this.cableSize,
     required this.msbType,
@@ -762,6 +792,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
     map['transformer_no'] = Variable<String>(transformerNo);
     map['ct_primary'] = Variable<String>(ctPrimary);
     map['ct_secondary'] = Variable<String>(ctSecondary);
+    map['ct_va_burden'] = Variable<String>(ctVaBurden);
     map['mf'] = Variable<String>(mf);
     map['cable_size'] = Variable<String>(cableSize);
     map['msb_type'] = Variable<String>(msbType);
@@ -798,6 +829,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
       transformerNo: Value(transformerNo),
       ctPrimary: Value(ctPrimary),
       ctSecondary: Value(ctSecondary),
+      ctVaBurden: Value(ctVaBurden),
       mf: Value(mf),
       cableSize: Value(cableSize),
       msbType: Value(msbType),
@@ -838,6 +870,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
       transformerNo: serializer.fromJson<String>(json['transformerNo']),
       ctPrimary: serializer.fromJson<String>(json['ctPrimary']),
       ctSecondary: serializer.fromJson<String>(json['ctSecondary']),
+      ctVaBurden: serializer.fromJson<String>(json['ctVaBurden']),
       mf: serializer.fromJson<String>(json['mf']),
       cableSize: serializer.fromJson<String>(json['cableSize']),
       msbType: serializer.fromJson<String>(json['msbType']),
@@ -871,6 +904,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
       'transformerNo': serializer.toJson<String>(transformerNo),
       'ctPrimary': serializer.toJson<String>(ctPrimary),
       'ctSecondary': serializer.toJson<String>(ctSecondary),
+      'ctVaBurden': serializer.toJson<String>(ctVaBurden),
       'mf': serializer.toJson<String>(mf),
       'cableSize': serializer.toJson<String>(cableSize),
       'msbType': serializer.toJson<String>(msbType),
@@ -902,6 +936,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
     String? transformerNo,
     String? ctPrimary,
     String? ctSecondary,
+    String? ctVaBurden,
     String? mf,
     String? cableSize,
     String? msbType,
@@ -930,6 +965,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
     transformerNo: transformerNo ?? this.transformerNo,
     ctPrimary: ctPrimary ?? this.ctPrimary,
     ctSecondary: ctSecondary ?? this.ctSecondary,
+    ctVaBurden: ctVaBurden ?? this.ctVaBurden,
     mf: mf ?? this.mf,
     cableSize: cableSize ?? this.cableSize,
     msbType: msbType ?? this.msbType,
@@ -980,6 +1016,9 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
       ctSecondary: data.ctSecondary.present
           ? data.ctSecondary.value
           : this.ctSecondary,
+      ctVaBurden: data.ctVaBurden.present
+          ? data.ctVaBurden.value
+          : this.ctVaBurden,
       mf: data.mf.present ? data.mf.value : this.mf,
       cableSize: data.cableSize.present ? data.cableSize.value : this.cableSize,
       msbType: data.msbType.present ? data.msbType.value : this.msbType,
@@ -1023,6 +1062,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
           ..write('transformerNo: $transformerNo, ')
           ..write('ctPrimary: $ctPrimary, ')
           ..write('ctSecondary: $ctSecondary, ')
+          ..write('ctVaBurden: $ctVaBurden, ')
           ..write('mf: $mf, ')
           ..write('cableSize: $cableSize, ')
           ..write('msbType: $msbType, ')
@@ -1056,6 +1096,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
     transformerNo,
     ctPrimary,
     ctSecondary,
+    ctVaBurden,
     mf,
     cableSize,
     msbType,
@@ -1088,6 +1129,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
           other.transformerNo == this.transformerNo &&
           other.ctPrimary == this.ctPrimary &&
           other.ctSecondary == this.ctSecondary &&
+          other.ctVaBurden == this.ctVaBurden &&
           other.mf == this.mf &&
           other.cableSize == this.cableSize &&
           other.msbType == this.msbType &&
@@ -1118,6 +1160,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
   final Value<String> transformerNo;
   final Value<String> ctPrimary;
   final Value<String> ctSecondary;
+  final Value<String> ctVaBurden;
   final Value<String> mf;
   final Value<String> cableSize;
   final Value<String> msbType;
@@ -1146,6 +1189,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     this.transformerNo = const Value.absent(),
     this.ctPrimary = const Value.absent(),
     this.ctSecondary = const Value.absent(),
+    this.ctVaBurden = const Value.absent(),
     this.mf = const Value.absent(),
     this.cableSize = const Value.absent(),
     this.msbType = const Value.absent(),
@@ -1175,6 +1219,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     this.transformerNo = const Value.absent(),
     this.ctPrimary = const Value.absent(),
     this.ctSecondary = const Value.absent(),
+    this.ctVaBurden = const Value.absent(),
     this.mf = const Value.absent(),
     this.cableSize = const Value.absent(),
     this.msbType = const Value.absent(),
@@ -1204,6 +1249,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     Expression<String>? transformerNo,
     Expression<String>? ctPrimary,
     Expression<String>? ctSecondary,
+    Expression<String>? ctVaBurden,
     Expression<String>? mf,
     Expression<String>? cableSize,
     Expression<String>? msbType,
@@ -1233,6 +1279,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
       if (transformerNo != null) 'transformer_no': transformerNo,
       if (ctPrimary != null) 'ct_primary': ctPrimary,
       if (ctSecondary != null) 'ct_secondary': ctSecondary,
+      if (ctVaBurden != null) 'ct_va_burden': ctVaBurden,
       if (mf != null) 'mf': mf,
       if (cableSize != null) 'cable_size': cableSize,
       if (msbType != null) 'msb_type': msbType,
@@ -1264,6 +1311,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     Value<String>? transformerNo,
     Value<String>? ctPrimary,
     Value<String>? ctSecondary,
+    Value<String>? ctVaBurden,
     Value<String>? mf,
     Value<String>? cableSize,
     Value<String>? msbType,
@@ -1293,6 +1341,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
       transformerNo: transformerNo ?? this.transformerNo,
       ctPrimary: ctPrimary ?? this.ctPrimary,
       ctSecondary: ctSecondary ?? this.ctSecondary,
+      ctVaBurden: ctVaBurden ?? this.ctVaBurden,
       mf: mf ?? this.mf,
       cableSize: cableSize ?? this.cableSize,
       msbType: msbType ?? this.msbType,
@@ -1356,6 +1405,9 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     if (ctSecondary.present) {
       map['ct_secondary'] = Variable<String>(ctSecondary.value);
     }
+    if (ctVaBurden.present) {
+      map['ct_va_burden'] = Variable<String>(ctVaBurden.value);
+    }
     if (mf.present) {
       map['mf'] = Variable<String>(mf.value);
     }
@@ -1413,6 +1465,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
           ..write('transformerNo: $transformerNo, ')
           ..write('ctPrimary: $ctPrimary, ')
           ..write('ctSecondary: $ctSecondary, ')
+          ..write('ctVaBurden: $ctVaBurden, ')
           ..write('mf: $mf, ')
           ..write('cableSize: $cableSize, ')
           ..write('msbType: $msbType, ')
@@ -2439,6 +2492,18 @@ class $ReportsTable extends Reports with TableInfo<$ReportsTable, Report> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _loadTypeMeta = const VerificationMeta(
+    'loadType',
+  );
+  @override
+  late final GeneratedColumn<String> loadType = GeneratedColumn<String>(
+    'load_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('3Ø H/Load'),
+  );
   static const VerificationMeta _exportLoadTextMeta = const VerificationMeta(
     'exportLoadText',
   );
@@ -2662,6 +2727,7 @@ class $ReportsTable extends Reports with TableInfo<$ReportsTable, Report> {
     msbStatus,
     postalOrdersText,
     checkedLoadKw,
+    loadType,
     exportLoadText,
     accuracyText,
     transformerLtBushes,
@@ -2799,6 +2865,12 @@ class $ReportsTable extends Reports with TableInfo<$ReportsTable, Report> {
           data['checked_load_kw']!,
           _checkedLoadKwMeta,
         ),
+      );
+    }
+    if (data.containsKey('load_type')) {
+      context.handle(
+        _loadTypeMeta,
+        loadType.isAcceptableOrUnknown(data['load_type']!, _loadTypeMeta),
       );
     }
     if (data.containsKey('export_load_text')) {
@@ -3009,6 +3081,10 @@ class $ReportsTable extends Reports with TableInfo<$ReportsTable, Report> {
         DriftSqlType.string,
         data['${effectivePrefix}checked_load_kw'],
       )!,
+      loadType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}load_type'],
+      )!,
       exportLoadText: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}export_load_text'],
@@ -3109,6 +3185,9 @@ class Report extends DataClass implements Insertable<Report> {
   final String msbStatus;
   final String postalOrdersText;
   final String checkedLoadKw;
+
+  /// Added in schema v2: load used for the check, printed in the C total row.
+  final String loadType;
   final String exportLoadText;
   final String accuracyText;
   final String transformerLtBushes;
@@ -3145,6 +3224,7 @@ class Report extends DataClass implements Insertable<Report> {
     required this.msbStatus,
     required this.postalOrdersText,
     required this.checkedLoadKw,
+    required this.loadType,
     required this.exportLoadText,
     required this.accuracyText,
     required this.transformerLtBushes,
@@ -3188,6 +3268,7 @@ class Report extends DataClass implements Insertable<Report> {
     map['msb_status'] = Variable<String>(msbStatus);
     map['postal_orders_text'] = Variable<String>(postalOrdersText);
     map['checked_load_kw'] = Variable<String>(checkedLoadKw);
+    map['load_type'] = Variable<String>(loadType);
     map['export_load_text'] = Variable<String>(exportLoadText);
     map['accuracy_text'] = Variable<String>(accuracyText);
     map['transformer_lt_bushes'] = Variable<String>(transformerLtBushes);
@@ -3234,6 +3315,7 @@ class Report extends DataClass implements Insertable<Report> {
       msbStatus: Value(msbStatus),
       postalOrdersText: Value(postalOrdersText),
       checkedLoadKw: Value(checkedLoadKw),
+      loadType: Value(loadType),
       exportLoadText: Value(exportLoadText),
       accuracyText: Value(accuracyText),
       transformerLtBushes: Value(transformerLtBushes),
@@ -3278,6 +3360,7 @@ class Report extends DataClass implements Insertable<Report> {
       msbStatus: serializer.fromJson<String>(json['msbStatus']),
       postalOrdersText: serializer.fromJson<String>(json['postalOrdersText']),
       checkedLoadKw: serializer.fromJson<String>(json['checkedLoadKw']),
+      loadType: serializer.fromJson<String>(json['loadType']),
       exportLoadText: serializer.fromJson<String>(json['exportLoadText']),
       accuracyText: serializer.fromJson<String>(json['accuracyText']),
       transformerLtBushes: serializer.fromJson<String>(
@@ -3325,6 +3408,7 @@ class Report extends DataClass implements Insertable<Report> {
       'msbStatus': serializer.toJson<String>(msbStatus),
       'postalOrdersText': serializer.toJson<String>(postalOrdersText),
       'checkedLoadKw': serializer.toJson<String>(checkedLoadKw),
+      'loadType': serializer.toJson<String>(loadType),
       'exportLoadText': serializer.toJson<String>(exportLoadText),
       'accuracyText': serializer.toJson<String>(accuracyText),
       'transformerLtBushes': serializer.toJson<String>(transformerLtBushes),
@@ -3362,6 +3446,7 @@ class Report extends DataClass implements Insertable<Report> {
     String? msbStatus,
     String? postalOrdersText,
     String? checkedLoadKw,
+    String? loadType,
     String? exportLoadText,
     String? accuracyText,
     String? transformerLtBushes,
@@ -3396,6 +3481,7 @@ class Report extends DataClass implements Insertable<Report> {
     msbStatus: msbStatus ?? this.msbStatus,
     postalOrdersText: postalOrdersText ?? this.postalOrdersText,
     checkedLoadKw: checkedLoadKw ?? this.checkedLoadKw,
+    loadType: loadType ?? this.loadType,
     exportLoadText: exportLoadText ?? this.exportLoadText,
     accuracyText: accuracyText ?? this.accuracyText,
     transformerLtBushes: transformerLtBushes ?? this.transformerLtBushes,
@@ -3446,6 +3532,7 @@ class Report extends DataClass implements Insertable<Report> {
       checkedLoadKw: data.checkedLoadKw.present
           ? data.checkedLoadKw.value
           : this.checkedLoadKw,
+      loadType: data.loadType.present ? data.loadType.value : this.loadType,
       exportLoadText: data.exportLoadText.present
           ? data.exportLoadText.value
           : this.exportLoadText,
@@ -3507,6 +3594,7 @@ class Report extends DataClass implements Insertable<Report> {
           ..write('msbStatus: $msbStatus, ')
           ..write('postalOrdersText: $postalOrdersText, ')
           ..write('checkedLoadKw: $checkedLoadKw, ')
+          ..write('loadType: $loadType, ')
           ..write('exportLoadText: $exportLoadText, ')
           ..write('accuracyText: $accuracyText, ')
           ..write('transformerLtBushes: $transformerLtBushes, ')
@@ -3546,6 +3634,7 @@ class Report extends DataClass implements Insertable<Report> {
     msbStatus,
     postalOrdersText,
     checkedLoadKw,
+    loadType,
     exportLoadText,
     accuracyText,
     transformerLtBushes,
@@ -3584,6 +3673,7 @@ class Report extends DataClass implements Insertable<Report> {
           other.msbStatus == this.msbStatus &&
           other.postalOrdersText == this.postalOrdersText &&
           other.checkedLoadKw == this.checkedLoadKw &&
+          other.loadType == this.loadType &&
           other.exportLoadText == this.exportLoadText &&
           other.accuracyText == this.accuracyText &&
           other.transformerLtBushes == this.transformerLtBushes &&
@@ -3620,6 +3710,7 @@ class ReportsCompanion extends UpdateCompanion<Report> {
   final Value<String> msbStatus;
   final Value<String> postalOrdersText;
   final Value<String> checkedLoadKw;
+  final Value<String> loadType;
   final Value<String> exportLoadText;
   final Value<String> accuracyText;
   final Value<String> transformerLtBushes;
@@ -3654,6 +3745,7 @@ class ReportsCompanion extends UpdateCompanion<Report> {
     this.msbStatus = const Value.absent(),
     this.postalOrdersText = const Value.absent(),
     this.checkedLoadKw = const Value.absent(),
+    this.loadType = const Value.absent(),
     this.exportLoadText = const Value.absent(),
     this.accuracyText = const Value.absent(),
     this.transformerLtBushes = const Value.absent(),
@@ -3689,6 +3781,7 @@ class ReportsCompanion extends UpdateCompanion<Report> {
     this.msbStatus = const Value.absent(),
     this.postalOrdersText = const Value.absent(),
     this.checkedLoadKw = const Value.absent(),
+    this.loadType = const Value.absent(),
     this.exportLoadText = const Value.absent(),
     this.accuracyText = const Value.absent(),
     this.transformerLtBushes = const Value.absent(),
@@ -3725,6 +3818,7 @@ class ReportsCompanion extends UpdateCompanion<Report> {
     Expression<String>? msbStatus,
     Expression<String>? postalOrdersText,
     Expression<String>? checkedLoadKw,
+    Expression<String>? loadType,
     Expression<String>? exportLoadText,
     Expression<String>? accuracyText,
     Expression<String>? transformerLtBushes,
@@ -3760,6 +3854,7 @@ class ReportsCompanion extends UpdateCompanion<Report> {
       if (msbStatus != null) 'msb_status': msbStatus,
       if (postalOrdersText != null) 'postal_orders_text': postalOrdersText,
       if (checkedLoadKw != null) 'checked_load_kw': checkedLoadKw,
+      if (loadType != null) 'load_type': loadType,
       if (exportLoadText != null) 'export_load_text': exportLoadText,
       if (accuracyText != null) 'accuracy_text': accuracyText,
       if (transformerLtBushes != null)
@@ -3800,6 +3895,7 @@ class ReportsCompanion extends UpdateCompanion<Report> {
     Value<String>? msbStatus,
     Value<String>? postalOrdersText,
     Value<String>? checkedLoadKw,
+    Value<String>? loadType,
     Value<String>? exportLoadText,
     Value<String>? accuracyText,
     Value<String>? transformerLtBushes,
@@ -3835,6 +3931,7 @@ class ReportsCompanion extends UpdateCompanion<Report> {
       msbStatus: msbStatus ?? this.msbStatus,
       postalOrdersText: postalOrdersText ?? this.postalOrdersText,
       checkedLoadKw: checkedLoadKw ?? this.checkedLoadKw,
+      loadType: loadType ?? this.loadType,
       exportLoadText: exportLoadText ?? this.exportLoadText,
       accuracyText: accuracyText ?? this.accuracyText,
       transformerLtBushes: transformerLtBushes ?? this.transformerLtBushes,
@@ -3905,6 +4002,9 @@ class ReportsCompanion extends UpdateCompanion<Report> {
     }
     if (checkedLoadKw.present) {
       map['checked_load_kw'] = Variable<String>(checkedLoadKw.value);
+    }
+    if (loadType.present) {
+      map['load_type'] = Variable<String>(loadType.value);
     }
     if (exportLoadText.present) {
       map['export_load_text'] = Variable<String>(exportLoadText.value);
@@ -3985,6 +4085,7 @@ class ReportsCompanion extends UpdateCompanion<Report> {
           ..write('msbStatus: $msbStatus, ')
           ..write('postalOrdersText: $postalOrdersText, ')
           ..write('checkedLoadKw: $checkedLoadKw, ')
+          ..write('loadType: $loadType, ')
           ..write('exportLoadText: $exportLoadText, ')
           ..write('accuracyText: $accuracyText, ')
           ..write('transformerLtBushes: $transformerLtBushes, ')
@@ -5928,6 +6029,7 @@ typedef $$ConsumersTableCreateCompanionBuilder = ConsumersCompanion Function({
   Value<String> transformerNo,
   Value<String> ctPrimary,
   Value<String> ctSecondary,
+  Value<String> ctVaBurden,
   Value<String> mf,
   Value<String> cableSize,
   Value<String> msbType,
@@ -5957,6 +6059,7 @@ typedef $$ConsumersTableUpdateCompanionBuilder = ConsumersCompanion Function({
   Value<String> transformerNo,
   Value<String> ctPrimary,
   Value<String> ctSecondary,
+  Value<String> ctVaBurden,
   Value<String> mf,
   Value<String> cableSize,
   Value<String> msbType,
@@ -6095,6 +6198,11 @@ class $$ConsumersTableFilterComposer
 
   ColumnFilters<String> get ctSecondary => $composableBuilder(
     column: $table.ctSecondary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ctVaBurden => $composableBuilder(
+    column: $table.ctVaBurden,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6293,6 +6401,11 @@ class $$ConsumersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get ctVaBurden => $composableBuilder(
+    column: $table.ctVaBurden,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get mf => $composableBuilder(
     column: $table.mf,
     builder: (column) => ColumnOrderings(column),
@@ -6423,6 +6536,11 @@ class $$ConsumersTableAnnotationComposer
 
   GeneratedColumn<String> get ctSecondary => $composableBuilder(
     column: $table.ctSecondary,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get ctVaBurden => $composableBuilder(
+    column: $table.ctVaBurden,
     builder: (column) => column,
   );
 
@@ -6566,6 +6684,7 @@ class $$ConsumersTableTableManager
                 Value<String> transformerNo = const Value.absent(),
                 Value<String> ctPrimary = const Value.absent(),
                 Value<String> ctSecondary = const Value.absent(),
+                Value<String> ctVaBurden = const Value.absent(),
                 Value<String> mf = const Value.absent(),
                 Value<String> cableSize = const Value.absent(),
                 Value<String> msbType = const Value.absent(),
@@ -6594,6 +6713,7 @@ class $$ConsumersTableTableManager
                 transformerNo: transformerNo,
                 ctPrimary: ctPrimary,
                 ctSecondary: ctSecondary,
+                ctVaBurden: ctVaBurden,
                 mf: mf,
                 cableSize: cableSize,
                 msbType: msbType,
@@ -6624,6 +6744,7 @@ class $$ConsumersTableTableManager
                 Value<String> transformerNo = const Value.absent(),
                 Value<String> ctPrimary = const Value.absent(),
                 Value<String> ctSecondary = const Value.absent(),
+                Value<String> ctVaBurden = const Value.absent(),
                 Value<String> mf = const Value.absent(),
                 Value<String> cableSize = const Value.absent(),
                 Value<String> msbType = const Value.absent(),
@@ -6652,6 +6773,7 @@ class $$ConsumersTableTableManager
                 transformerNo: transformerNo,
                 ctPrimary: ctPrimary,
                 ctSecondary: ctSecondary,
+                ctVaBurden: ctVaBurden,
                 mf: mf,
                 cableSize: cableSize,
                 msbType: msbType,
@@ -7347,6 +7469,7 @@ typedef $$ReportsTableCreateCompanionBuilder = ReportsCompanion Function({
   Value<String> msbStatus,
   Value<String> postalOrdersText,
   Value<String> checkedLoadKw,
+  Value<String> loadType,
   Value<String> exportLoadText,
   Value<String> accuracyText,
   Value<String> transformerLtBushes,
@@ -7382,6 +7505,7 @@ typedef $$ReportsTableUpdateCompanionBuilder = ReportsCompanion Function({
   Value<String> msbStatus,
   Value<String> postalOrdersText,
   Value<String> checkedLoadKw,
+  Value<String> loadType,
   Value<String> exportLoadText,
   Value<String> accuracyText,
   Value<String> transformerLtBushes,
@@ -7578,6 +7702,11 @@ class $$ReportsTableFilterComposer
 
   ColumnFilters<String> get checkedLoadKw => $composableBuilder(
     column: $table.checkedLoadKw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get loadType => $composableBuilder(
+    column: $table.loadType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7874,6 +8003,11 @@ class $$ReportsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get loadType => $composableBuilder(
+    column: $table.loadType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get exportLoadText => $composableBuilder(
     column: $table.exportLoadText,
     builder: (column) => ColumnOrderings(column),
@@ -8046,6 +8180,9 @@ class $$ReportsTableAnnotationComposer
     column: $table.checkedLoadKw,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get loadType =>
+      $composableBuilder(column: $table.loadType, builder: (column) => column);
 
   GeneratedColumn<String> get exportLoadText => $composableBuilder(
     column: $table.exportLoadText,
@@ -8294,6 +8431,7 @@ class $$ReportsTableTableManager
                 Value<String> msbStatus = const Value.absent(),
                 Value<String> postalOrdersText = const Value.absent(),
                 Value<String> checkedLoadKw = const Value.absent(),
+                Value<String> loadType = const Value.absent(),
                 Value<String> exportLoadText = const Value.absent(),
                 Value<String> accuracyText = const Value.absent(),
                 Value<String> transformerLtBushes = const Value.absent(),
@@ -8328,6 +8466,7 @@ class $$ReportsTableTableManager
                 msbStatus: msbStatus,
                 postalOrdersText: postalOrdersText,
                 checkedLoadKw: checkedLoadKw,
+                loadType: loadType,
                 exportLoadText: exportLoadText,
                 accuracyText: accuracyText,
                 transformerLtBushes: transformerLtBushes,
@@ -8364,6 +8503,7 @@ class $$ReportsTableTableManager
                 Value<String> msbStatus = const Value.absent(),
                 Value<String> postalOrdersText = const Value.absent(),
                 Value<String> checkedLoadKw = const Value.absent(),
+                Value<String> loadType = const Value.absent(),
                 Value<String> exportLoadText = const Value.absent(),
                 Value<String> accuracyText = const Value.absent(),
                 Value<String> transformerLtBushes = const Value.absent(),
@@ -8398,6 +8538,7 @@ class $$ReportsTableTableManager
                 msbStatus: msbStatus,
                 postalOrdersText: postalOrdersText,
                 checkedLoadKw: checkedLoadKw,
+                loadType: loadType,
                 exportLoadText: exportLoadText,
                 accuracyText: accuracyText,
                 transformerLtBushes: transformerLtBushes,

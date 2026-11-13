@@ -13,17 +13,18 @@ import '../../domain/settings_keys.dart';
 import 'pdf_widgets.dart';
 
 const _margin = 26.0;
-const _contentWidth = 595.28 - 2 * _margin;
+const _w = 595.28 - 2 * _margin; // content width
 
 /// File name of a report PDF: `account_visitdate_TYPE.pdf`.
 String reportPdfFileName(ReportBundle b) {
-  String clean(String s) => s.replaceAll(RegExp(r'[^A-Za-z0-9\-]+'), '-');
-  final acc = clean(b.sectionA['account_no'] ?? 'report');
-  final date = clean(fmtDate(b.report.visitDate));
+  String c(String s) => s.replaceAll(RegExp(r'[^A-Za-z0-9\-]+'), '-');
+  final acc = c(b.sectionA['account_no'] ?? 'report');
+  final date = c(fmtDate(b.report.visitDate));
   return '${acc}_${date}_${b.report.reportType}.pdf';
 }
 
-/// Builds the 2-page A4 report PDF for any report type.
+/// Builds the 2-page A4 report exactly in the layout of the MEPCO paper forms
+/// (docs/forms/): AMR test check, net meter and new connection.
 Future<Uint8List> buildReportPdf(
   ReportBundle b,
   Map<String, String> settings, {
@@ -32,126 +33,258 @@ Future<Uint8List> buildReportPdf(
   final doc = pw.Document(
     title: '${b.template.shortName} ${b.sectionA['account_no'] ?? ''}',
     author: 'MEPCO M&T',
-    theme: pw.ThemeData.withFont(
-      base: pw.Font.helvetica(),
-      bold: pw.Font.helveticaBold(),
-    ),
+    theme: pw.ThemeData.withFont(base: serif, bold: serifBold),
   );
-  final r = _ReportPdf(b, {...SettingKeys.defaults, ...settings}, logo);
-  final pageTheme = pw.PageTheme(
+  final f = _Form(b, {...SettingKeys.defaults, ...settings}, logo);
+  final theme = pw.PageTheme(
     pageFormat: PdfPageFormat.a4,
-    margin: const pw.EdgeInsets.all(_margin),
+    margin: const pw.EdgeInsets.fromLTRB(_margin, 20, _margin, 22),
   );
-  doc.addPage(pw.Page(pageTheme: pageTheme, build: (_) => r.page1()));
-  doc.addPage(pw.Page(pageTheme: pageTheme, build: (_) => r.page2()));
+  doc.addPage(pw.Page(pageTheme: theme, build: (_) => f.page1()));
+  doc.addPage(pw.Page(pageTheme: theme, build: (_) => f.page2()));
   return doc.save();
 }
 
-class _ReportPdf {
-  _ReportPdf(this.b, this.settings, this.logo)
-    : sc = computeSectionC(b, settings);
+class _Form {
+  _Form(this.b, this.s, this.logo) : sc = computeSectionC(b, s);
 
   final ReportBundle b;
-  final Map<String, String> settings;
+  final Map<String, String> s;
   final Uint8List? logo;
   final SectionC sc;
 
   ReportTemplate get t => b.template;
-  String a(String k) => b.sectionA[k] ?? '';
+  bool get isNet => t.isNet;
+  bool get isNew => t.isNewConnection;
+  String a(String k) => (b.sectionA[k] ?? '').trim();
   String get division => a('op_division');
+  String get subDivision => b.report.toSubDivision.trim().isEmpty
+      ? a('sub_division')
+      : b.report.toSubDivision.trim();
+  String get circle => s[SettingKeys.circle] ?? '';
+  String dash(String v) => v.trim().isEmpty ? '-' : v.trim();
 
-  bool _strikeColumn(ColumnSlot c) => !c.isUsed;
+  /// Columns used by the seals grid and the "% age" lines (2nd and 3rd meter).
+  String get col2 => isNet ? ColumnRole.billing : ColumnRole.amr;
+  String get col3 => isNet ? ColumnRole.backup : ColumnRole.existing;
 
-  // ================================================================ page 1
+  // ==================================================================== page 1
 
-  pw.Widget page1() {
+  pw.Widget page1() => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+    children: [
+      isNet ? _headerNet() : _headerAmr(),
+      pw.SizedBox(height: 5),
+      _toBlock(),
+      pw.SizedBox(height: 4),
+      _subject(),
+      pw.SizedBox(height: 4),
+      _ref(),
+      pw.SizedBox(height: 5),
+      _intro(),
+      pw.SizedBox(height: 4),
+      _sectionA(),
+      pw.SizedBox(height: 3),
+      _sectionB(),
+      pw.SizedBox(height: 3),
+      _readings(),
+      pw.Spacer(),
+      _signatureBox(),
+    ],
+  );
+
+  pw.Widget _logo(double size) {
+    if (logo == null) return pw.SizedBox(height: size);
+    return pw.Center(
+      child: pw.Image(
+        pw.MemoryImage(logo!),
+        width: size,
+        height: size,
+        fit: pw.BoxFit.contain,
+      ),
+    );
+  }
+
+  pw.Widget _headerAmr() {
+    final amr = isNew ? b.column(ColumnRole.amr).meter : null;
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: [
-        _header(),
-        pw.SizedBox(height: 4),
-        _addressBlock(),
-        sectionHeading('A)  DESCRIPTION OF INSTALLATION'),
-        _sectionA(),
-        if (t.isNewConnection) _newConnectionDetails(),
-        sectionHeading('B)  ENERGY METER PARTICULARS'),
-        _sectionB(),
-        sectionHeading(
-          t.isNet ? 'METER READINGS (BI-DIRECTIONAL)' : 'METER READINGS',
+        _logo(logo == null ? 8 : 40),
+        pw.Center(
+          child: pw.Text(
+            'MULTAN ELECTRIC POWER COMPANY LIMITED',
+            style: pw.TextStyle(
+              font: serifBold,
+              fontSize: 15.5,
+              letterSpacing: 0.6,
+              decoration: pw.TextDecoration.underline,
+              decorationThickness: 2,
+            ),
+          ),
         ),
-        _readings(),
-        pw.Spacer(),
-        _pageFooter(1),
+        pw.SizedBox(height: 3),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(
+              width: 150,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Phone No. ${s[SettingKeys.officePhone]}',
+                    style: ts(7.5, b: true),
+                  ),
+                  pw.SizedBox(height: 16),
+                  pw.Row(
+                    children: [
+                      pw.Text('Memo No.', style: ts(8)),
+                      pw.SizedBox(width: 4),
+                      blank(b.report.memoNo, width: 95),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            pw.Expanded(
+              child: isNew
+                  ? pw.Column(
+                      children: [
+                        pw.Text('New Connection', style: ts(11, b: true)),
+                        if (amr != null && amr.simNo.isNotEmpty)
+                          pw.Text('SIM No: ${amr.simNo}', style: ts(9.5)),
+                        if (amr != null && amr.commId.isNotEmpty)
+                          pw.Text('ID: ${amr.commId}', style: ts(9.5)),
+                      ],
+                    )
+                  : pw.SizedBox(),
+            ),
+            pw.SizedBox(
+              width: 140,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('Office of the', style: ts(7.5, b: true)),
+                  pw.Text('Executive Engineer M&T', style: ts(7.5, b: true)),
+                  pw.Text('MEPCO Circle $circle', style: ts(7.5, b: true)),
+                  pw.Row(
+                    children: [
+                      pw.Text('Dated', style: ts(7.5)),
+                      pw.SizedBox(width: 3),
+                      blank(fmtDate(b.report.memoDate), width: 95),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
 
-  pw.Widget _header() {
-    final logoBox = pw.Container(
-      width: 56,
-      height: 56,
-      child: logo == null
-          ? null
-          : pw.Image(pw.MemoryImage(logo!), fit: pw.BoxFit.contain),
-    );
-    final amr = t.isNewConnection ? b.column(ColumnRole.amr).meter : null;
+  pw.Widget _headerNet() => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+    children: [
+      _logo(logo == null ? 4 : 36),
+      pw.Center(
+        child: pw.Text(
+          'MULTAN ELECTRIC POWER COMPANY',
+          style: pw.TextStyle(
+            font: serifBold,
+            fontSize: 16,
+            letterSpacing: 0.6,
+            decoration: pw.TextDecoration.underline,
+            decorationThickness: 2,
+          ),
+        ),
+      ),
+      pw.Center(
+        child: pw.Text(
+          'Office of the Executive Engineer M&T MEPCO Circle $circle',
+          style: ts(9.5, b: true, u: true),
+        ),
+      ),
+      pw.SizedBox(height: 4),
+      pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.end,
+        children: [
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Phone No. ${s[SettingKeys.officePhone]}',
+                style: ts(7.5, b: true),
+              ),
+              pw.Row(
+                children: [
+                  pw.Text('Memo No', style: ts(8)),
+                  pw.SizedBox(width: 4),
+                  blank(b.report.memoNo, width: 110),
+                ],
+              ),
+            ],
+          ),
+          pw.Spacer(),
+          pw.Text('Dated', style: ts(8)),
+          pw.SizedBox(width: 4),
+          blank(fmtDate(b.report.memoDate), width: 110),
+        ],
+      ),
+    ],
+  );
+
+  pw.Widget _toBlock() => pw.Padding(
+    padding: const pw.EdgeInsets.only(left: 62),
+    child: pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text('The Sub Divisional Officer (OP),', style: ts(8.5)),
+        pw.RichText(
+          text: pw.TextSpan(
+            children: [
+              pw.TextSpan(text: 'MEPCO Sub Division ', style: ts(8.5)),
+              pw.TextSpan(
+                text: clean(subDivision),
+                style: ts(9, b: true, u: true),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  pw.Widget _subject() {
+    final name = a('name'), address = a('address');
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        logoBox,
-        pw.SizedBox(width: 8),
+        pw.SizedBox(width: 30, child: pw.Text('Sub:', style: ts(8.5))),
         pw.Expanded(
           child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
               pw.Text(
-                'MULTAN ELECTRIC POWER COMPANY',
-                style: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 13,
-                ),
+                'INSTALLATION CUM TEST CHECK REPORT OF THE METERING EQUIPMENTS IN RESPECT OF',
+                style: ts(8.6, b: true, u: true),
               ),
               pw.SizedBox(height: 2),
-              pw.Text(
-                'Office of the Executive Engineer M&T MEPCO Circle ${settings[SettingKeys.circle]}',
-                style: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 9,
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(width: thick),
+                ),
+                child: pw.Text(
+                  clean('M/S: $name${address.isEmpty ? '' : ' $address'}'),
+                  maxLines: 1,
+                  style: ts(10.5, b: true),
                 ),
               ),
-              pw.Text(
-                'Phone: ${settings[SettingKeys.officePhone]}',
-                style: const pw.TextStyle(fontSize: 8),
-              ),
-              pw.SizedBox(height: 3),
-              pw.Text(
-                t.title.toUpperCase(),
-                textAlign: pw.TextAlign.center,
-                style: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 9.5,
-                  decoration: pw.TextDecoration.underline,
-                ),
-              ),
-            ],
-          ),
-        ),
-        pw.SizedBox(width: 8),
-        pw.SizedBox(
-          width: 120,
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              labelValue('Memo No: ', b.report.memoNo),
-              pw.SizedBox(height: 2),
-              labelValue('Dated: ', fmtDate(b.report.memoDate)),
-              if (amr != null && amr.simNo.isNotEmpty) ...[
-                pw.SizedBox(height: 2),
-                labelValue('SIM No: ', amr.simNo),
-              ],
-              if (amr != null && amr.commId.isNotEmpty) ...[
-                pw.SizedBox(height: 2),
-                labelValue('Comm ID: ', amr.commId),
-              ],
             ],
           ),
         ),
@@ -159,545 +292,947 @@ class _ReportPdf {
     );
   }
 
-  String _refText() {
-    final r = b.report;
-    final no = r.refNo.trim(), date = fmtDate(r.refDate);
-    String withNoDate(String base) {
-      var s = base;
-      if (no.isNotEmpty) s += ' No. $no';
-      if (date.isNotEmpty) s += ' Dated $date';
-      return s;
-    }
+  pw.Widget _ref() => pw.Row(
+    crossAxisAlignment: pw.CrossAxisAlignment.end,
+    children: [
+      pw.SizedBox(width: 30, child: pw.Text('Ref:', style: ts(8.5))),
+      pw.Text(
+        'Your memo No. / Telephonic message / Seasonal / Routine check',
+        style: ts(8),
+      ),
+      pw.SizedBox(width: 4),
+      blank(b.report.refNo),
+      pw.SizedBox(width: 4),
+      pw.Text('Dated', style: ts(8)),
+      pw.SizedBox(width: 4),
+      blank(fmtDate(b.report.refDate), width: 80),
+    ],
+  );
 
-    return switch (r.refType) {
-      'telephonic' => withNoDate('Telephonic message'),
-      'seasonal' => withNoDate('Seasonal check'),
-      'routine' => withNoDate('Routine check'),
-      _ => withNoDate('XEN (OP) $division Memo'),
-    };
+  pw.Widget _intro() {
+    final team = b.report.teamText.trim();
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(left: 30),
+      child: pw.RichText(
+        textAlign: pw.TextAlign.justify,
+        text: pw.TextSpan(
+          style: ts(8.6),
+          children: [
+            pw.TextSpan(
+              text: clean(
+                '          The undersigned along with ${team.isEmpty ? '____________' : team} '
+                '& yourself visited the above noted premises on dated ',
+              ),
+            ),
+            pw.TextSpan(
+              text: fmtDate(b.report.visitDate),
+              style: ts(9.5, u: true),
+            ),
+            const pw.TextSpan(
+              text:
+                  ' to check / install AMR L.T MDI metering equipment at site. '
+                  'The related particulars of metering equipment\'s and other '
+                  'necessary description are as under:-',
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  pw.Widget _addressBlock() {
-    final r = b.report;
-    final name = a('name'), address = a('address');
+  // ------------------------------------------------------------------ A
+
+  pw.Widget _title(String letter, String text) => pw.Padding(
+    padding: const pw.EdgeInsets.only(left: 6, bottom: 1),
+    child: pw.Row(
+      children: [
+        pw.SizedBox(
+          width: 40,
+          child: pw.Text('$letter).', style: ts(9, b: true)),
+        ),
+        pw.Text(text, style: ts(9, b: true)),
+      ],
+    ),
+  );
+
+  pw.Widget _sectionA() {
+    String nd(String no, String date) =>
+        [no, date].where((x) => x.trim().isNotEmpty).join(' ');
+    final tfMake = a('transformer_make');
+    final kva = a('transformer_kva');
+    final cells = <(String, String)>[
+      ('Application No & Date', nd(a('application_no'), a('application_date'))),
+      (
+        'A/C No & Tariff',
+        [a('account_no'), a('tariff')].where((x) => x.isNotEmpty).join(' / '),
+      ),
+      ('Sanctioned by SE/XEN No & Date', a('sanction_ref')),
+      (
+        'Sanction Load',
+        a('sanctioned_load_kw').isEmpty ? '' : '${a('sanctioned_load_kw')} Kw',
+      ),
+      ('SCO / MCO / RCO No & Date', nd(a('sco_mco_rco_no'), a('sco_date'))),
+      ('Kind of Industry', a('industry_kind')),
+      (
+        'Capacity of Transformer & Make',
+        kva.isEmpty ? tfMake : '$kva/KVA${tfMake.isEmpty ? '' : ' ($tfMake)'}',
+      ),
+      ('Size of Cable', a('cable_size')),
+      ('CT Ratio & VA Burden', ctRatioText(b.sectionA)),
+      ('Type of MSB', a('msb_type')),
+      (
+        isNew ? 'Connected Load  T/F No.' : 'Connected Load',
+        isNew
+            ? [
+                a('connected_load'),
+                [
+                  a('transformer_no'),
+                  if (tfMake.isNotEmpty) '/$tfMake',
+                ].join(' '),
+              ].where((x) => x.trim().isNotEmpty).join('  ')
+            : a('connected_load'),
+      ),
+      ('Feeder Name', a('feeder_name')),
+    ];
+    final widths = fit([14, 132, 120, 14, 100, 140], _w - 2 * thick);
+    GCell no(int n) => GCell('$n', align: Al.center, size: 7);
+    GCell label(String l) => GCell(l, size: 7.6);
+    GCell value(String v) =>
+        GCell(dash(v), bold: true, align: Al.center, size: 8.6);
+    final rows = [
+      for (var i = 0; i < 12; i += 2)
+        GRow([
+          no(i + 1),
+          label(cells[i].$1),
+          value(cells[i].$2),
+          no(i + 2),
+          label(cells[i + 1].$1),
+          value(cells[i + 1].$2),
+        ], height: 12),
+    ];
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text('To:', style: bold),
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(left: 24),
-          child: pw.Text(
-            'The Sub Divisional Officer (OP), MEPCO Sub Division ${r.toSubDivision}',
-            style: normal,
-          ),
+        _title(
+          'A',
+          isNet
+              ? 'DESCRIPTION OF INSTALLATION OF BI-DIRECTION METER (NET METER)'
+              : 'DESCRIPTION OF INSTALLATION / MCO / EOL / BACKUP ADDED',
         ),
-        pw.SizedBox(height: 3),
-        labelValue(
-          'Sub: ',
-          'M/S: $name${address.isEmpty ? '' : ', $address'}   A/C No: ${a('account_no')}',
+        formGrid(widths: widths, rows: rows),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------------ B
+
+  /// Meter columns of section B, in form order.
+  List<(String, ColumnSlot)> get _bColumns => isNet
+      ? [
+          ('Billing NET Meter', b.column(ColumnRole.billing)),
+          ('B/up NET Meter 2', b.column(ColumnRole.backup)),
+          ('Removed Meter', b.column(ColumnRole.removed)),
+        ]
+      : [
+          ('Removed Meter', b.column(ColumnRole.removed)),
+          (isNew ? 'AMR Meter' : 'AMR Meter', b.column(ColumnRole.amr)),
+          ('Installed / Existing Meter', b.column(ColumnRole.existing)),
+        ];
+
+  String _make(ColumnSlot c) {
+    final m = c.meter;
+    if (m == null) return '';
+    final make = m.make.trim(), kind = m.meterKind.trim();
+    if (kind == 'NET' || make.toUpperCase().contains(kind.toUpperCase())) {
+      return make;
+    }
+    if (kind == 'AMI') return '$make $kind'.trim();
+    return '$kind $make'.trim();
+  }
+
+  pw.Widget _sectionB() {
+    final cols = _bColumns;
+    final widths = fit([150, 125, 125, 125], _w - 2 * thick);
+    final labels = ['MFG No', 'Make', 'Amps', 'Volts', 'Meter Constant', 'M.F'];
+    String val(ColumnSlot c, int i) {
+      final m = c.meter;
+      if (m == null || !c.isUsed) return '';
+      final mf = m.mf.isNotEmpty ? m.mf : b.mfText;
+      return switch (i) {
+        0 => m.mfgNo,
+        1 => _make(c),
+        2 => m.amps,
+        3 => m.volts,
+        4 =>
+          m.meterConstant.isEmpty
+              ? ''
+              : (isNet
+                    ? '${m.meterConstant}/imp'
+                    : '${m.meterConstant} Imp/KWH /KVARH'),
+        _ => mf.isEmpty ? '' : 'R x $mf',
+      };
+    }
+
+    final rows = [
+      GRow([
+        const GCell('Description', bold: true, align: Al.center, size: 9),
+        for (final c in cols)
+          GCell(c.$1, bold: true, align: Al.center, size: 8.6),
+      ], height: 13),
+      for (var i = 0; i < labels.length; i++)
+        GRow([
+          GCell(labels[i], bold: true, size: 8.6),
+          for (final c in cols) GCell(val(c.$2, i), bold: true, size: 8),
+        ], height: 11.5),
+    ];
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _title(
+          'B',
+          isNet ? 'NET METER PARTICULARS:' : 'ENERGY METER PARTICULARS:',
         ),
-        pw.SizedBox(height: 2),
-        labelValue('Ref: ', _refText()),
-        pw.SizedBox(height: 3),
-        pw.Text(
-          clean(
-            'In compliance with the above referred, the site was visited on '
-            '${fmtDate(r.visitDate)} by the M&T team comprising '
-            '${r.teamText.trim().isEmpty ? '________' : r.teamText.trim()} '
-            'and the metering equipment was checked. The detail is as under:-',
-          ),
-          style: normal,
-          textAlign: pw.TextAlign.justify,
+        formGrid(
+          widths: widths,
+          rows: rows,
+          strikes: [
+            for (var i = 0; i < cols.length; i++)
+              if (!cols[i].$2.isUsed) Strike(i + 1, i + 1, 0, rows.length - 1),
+          ],
         ),
       ],
     );
   }
 
-  pw.Widget _sectionA() {
-    const perRow = 3;
-    final rows = <pw.TableRow>[];
-    for (var i = 0; i < sectionACells.length; i += perRow) {
-      rows.add(
-        pw.TableRow(
-          children: [
-            for (final c in sectionACells.skip(i).take(perRow))
-              pw.Container(
-                height: 20,
-                padding: const pw.EdgeInsets.symmetric(
-                  horizontal: 3,
-                  vertical: 2,
-                ),
-                alignment: pw.Alignment.centerLeft,
-                child: pw.RichText(
-                  maxLines: 2,
-                  text: pw.TextSpan(
-                    children: [
-                      pw.TextSpan(
-                        text: '${c.no}. ${c.label}: ',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: fs,
-                        ),
-                      ),
-                      pw.TextSpan(
-                        text: clean(c.value(b.sectionA)),
-                        style: normal,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-    return pw.Table(
-      border: pw.TableBorder.all(width: lineW),
-      columnWidths: const {
-        0: pw.FlexColumnWidth(),
-        1: pw.FlexColumnWidth(),
-        2: pw.FlexColumnWidth(),
-      },
-      children: rows,
-    );
-  }
+  // ------------------------------------------------------------------ readings
 
-  pw.Widget _newConnectionDetails() {
-    final r = b.report;
-    String nd(String no, String date) => [
-      no,
-      if (date.isNotEmpty) 'dt $date',
-    ].where((s) => s.isNotEmpty).join(' ');
-    final items = {
-      'App No: ': nd(a('application_no'), a('application_date')),
-      'SCO No: ': nd(a('sco_mco_rco_no'), a('sco_date')),
-      'Store Challan No: ': nd(r.storeChallanNo, fmtDate(r.storeChallanDate)),
-      'New Meters: ': r.newMeterCount,
-      'CTs: ': r.ctCount.isEmpty
-          ? ''
-          : '${r.ctCount} No. ${ctRatioText(b.sectionA)} A',
-    };
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(3),
-      decoration: const pw.BoxDecoration(
-        border: pw.Border(
-          left: pw.BorderSide(width: lineW),
-          right: pw.BorderSide(width: lineW),
-          bottom: pw.BorderSide(width: lineW),
-        ),
-      ),
-      child: pw.Wrap(
-        spacing: 14,
-        runSpacing: 2,
-        children: [for (final e in items.entries) labelValue(e.key, e.value)],
-      ),
-    );
-  }
-
-  double get _labelWidth => t.isNet ? 150 : 130;
-  double get _colWidth => (_contentWidth - _labelWidth) / b.columns.length;
-
-  pw.Widget _sectionB() {
-    final labels = ['MFG No', 'Make', 'Amps', 'Volts', 'Meter Constant', 'M.F'];
-    const rowH = 13.0, headH = 16.0;
-    return gridFrame([
-      gridColumn(
-        header: 'Particulars',
-        values: labels,
-        width: _labelWidth,
-        rowHeight: rowH,
-        headerHeight: headH,
-        boldValues: true,
-        centerValues: false,
-      ),
-      for (final c in b.columns)
-        gridColumn(
-          header: t.column(c.role).label,
-          width: _colWidth,
-          rowHeight: rowH,
-          headerHeight: headH,
-          strike: _strikeColumn(c),
-          values: () {
-            final m = c.meter;
-            if (m == null) return List.filled(labels.length, '');
-            final mf = m.mf.isNotEmpty ? m.mf : b.mfText;
-            return [
-              m.mfgNo,
-              [m.make, m.meterKind].where((s) => s.isNotEmpty).join(' '),
-              m.amps,
-              m.volts,
-              m.meterConstant.isEmpty ? '' : '${m.meterConstant} imp/kWh/kVARh',
-              mf.isEmpty ? '' : 'R x $mf',
-            ];
-          }(),
-        ),
-    ]);
-  }
-
-  String _readingText(ColumnSlot c, ParamDef p) {
+  String _reading(ColumnSlot c, ParamDef p) {
+    if (!c.isUsed) return '';
     if (p.kind == ParamKind.meterNo) return c.meter?.mfgNo ?? '';
     final v = c.readings[p.code]?.trim() ?? '';
     if (p.kind == ParamKind.instantKw && v.isNotEmpty) {
-      return instantKwText(v, columnMf(b, c));
+      return instantKwText(v, columnMf(b, c)).replaceAll(' KW', ' Kw');
     }
     return v;
   }
 
-  pw.Widget _readings() {
-    final rowH = t.isNet ? 11.6 : 15.0;
-    return gridFrame([
-      gridColumn(
-        header: 'Parameters',
-        values: [
-          for (final p in t.params)
-            p.number == null ? p.label : '${p.number}. ${p.label}',
+  pw.Widget _readings() => isNet ? _readingsNet() : _readingsAmr();
+
+  pw.Widget _readingsAmr() {
+    final cols = [
+      ('Removed Meter', b.column(ColumnRole.removed)),
+      ('AMR Meter', b.column(ColumnRole.amr)),
+      ('Installed / Existing Meter', b.column(ColumnRole.existing)),
+    ];
+    final widths = fit([150, 125, 125, 125], _w - 2 * thick);
+    // Last row of each group gets a thick line, like the form.
+    const groupEnds = {
+      'time',
+      'kwh_off',
+      'kvarh_off',
+      'mdi_off',
+      'cum_mdi_off',
+    };
+    const groupHeads = {
+      'kwh_total',
+      'kvarh_total',
+      'mdi_total',
+      'cum_mdi_total',
+    };
+    const rowH = 17.6;
+    final rows = <GRow>[
+      GRow(
+        [
+          const GCell(
+            'Meter Parameter',
+            bold: true,
+            align: Al.center,
+            size: 9.5,
+          ),
+          for (final c in cols)
+            GCell(c.$1, bold: true, align: Al.center, size: 9),
         ],
-        width: _labelWidth,
-        rowHeight: rowH,
-        headerHeight: 16,
-        boldValues: true,
-        centerValues: false,
+        height: 22,
+        bottom: thick,
       ),
-      for (final c in b.columns)
-        gridColumn(
-          header: t.column(c.role).label,
-          width: _colWidth,
-          rowHeight: rowH,
-          headerHeight: 16,
-          strike: _strikeColumn(c),
-          values: [for (final p in t.params) _readingText(c, p)],
+      for (final p in t.params)
+        GRow(
+          [
+            GCell(
+              p.label,
+              bold: groupHeads.contains(p.code),
+              size: 9,
+              indent: groupHeads.contains(p.code) ? 0 : 2,
+            ),
+            for (final c in cols)
+              GCell(_reading(c.$2, p), align: Al.center, size: 10),
+          ],
+          height: rowH,
+          bottom: groupEnds.contains(p.code) ? thick : thin,
         ),
-    ]);
-  }
-
-  pw.Widget _pageFooter(int page) => pw.Align(
-    alignment: pw.Alignment.centerRight,
-    child: pw.Text(
-      'Page $page of 2',
-      style: const pw.TextStyle(fontSize: fsSmall),
-    ),
-  );
-
-  // ================================================================ page 2
-
-  pw.Widget page2() {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: [
-        pw.Text(
-          'M/S: ${a('name')}   A/C No: ${a('account_no')}   Memo No: ${b.report.memoNo}   Dated: ${fmtDate(b.report.memoDate)}',
-          style: const pw.TextStyle(fontSize: fsSmall),
-        ),
-        sectionHeading('C)  METER CHECKING RESULTS'),
-        _sectionC(),
-        sectionHeading('D)  SEALING STATUS / RECORD'),
-        _sectionD(),
-        sectionHeading('E)  DISCREPANCY, REMARKS AND RECOMMENDATIONS'),
-        _sectionE(),
-        sectionHeading('F)  POSTAL ORDERS SIGNED BY'),
-        _sectionF(),
-        pw.SizedBox(height: 6),
-        _signatures(),
-        pw.SizedBox(height: 8),
-        _signOff(),
-        _ccList(),
-        pw.Spacer(),
-        _pageFooter(2),
+    ];
+    return formGrid(
+      widths: widths,
+      rows: rows,
+      strikes: [
+        for (var i = 0; i < cols.length; i++)
+          if (!cols[i].$2.isUsed) Strike(i + 1, i + 1, 1, rows.length - 1),
       ],
     );
   }
 
-  pw.Widget _loadTable(String side) {
-    const w = (_contentWidth - 10) / 2;
-    final colW = [w * 0.16, w * 0.21, w * 0.21, w * 0.21, w * 0.21];
-    const rowH = 13.0;
-    final has = sc.hasSide(side);
-    String num(String s) => s.trim();
-    final rows = <List<String>>[];
-    for (final p in phases) {
-      final l = b.phaseLoads[phaseKey(side, p)];
-      rows.add([
-        p,
-        num(l?.volts ?? ''),
-        num(l?.amps ?? ''),
-        fmtNum(sc.phaseKw[phaseKey(side, p)]),
-        num(l?.pf ?? ''),
-      ]);
-    }
-    rows.add(['Total', '', '', fmtNum(sc.sideTotal(side)), '']);
-    final headers = ['Phase', 'Volts', 'Amps', 'K.W', 'P.F'];
+  pw.Widget _readingsNet() {
+    final cols = [
+      ('Billing Net Meter', b.column(ColumnRole.billing)),
+      ('B/up Net Meter', b.column(ColumnRole.backup)),
+      ('Meter', b.column(ColumnRole.removed)),
+      ('B/up Meter', b.column(ColumnRole.backupRemoved)),
+    ];
+    final widths = fit([28, 140, 100, 100, 80, 80], _w - 2 * thick);
+    const rowH = 12.3;
+    final rows = <GRow>[
+      GRow(
+        [
+          const GCell('Sr.No', bold: true, align: Al.center, size: 8.5),
+          const GCell('Parameters', bold: true, size: 9),
+          for (final c in cols)
+            GCell(c.$1, bold: true, align: Al.center, size: 8.5),
+        ],
+        height: 15,
+        bottom: thick,
+      ),
+      for (final p in t.params)
+        GRow([
+          GCell('${p.number}.', align: Al.center, size: 8.5),
+          GCell(p.label, bold: true, size: 8.4),
+          for (final c in cols)
+            GCell(_reading(c.$2, p), align: Al.center, size: 9),
+        ], height: rowH),
+    ];
+    return formGrid(
+      widths: widths,
+      rows: rows,
+      strikes: [
+        for (var i = 0; i < cols.length; i++)
+          if (!cols[i].$2.isUsed) Strike(i + 2, i + 2, 1, rows.length - 1),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------------ signatures
+
+  pw.Widget _signatureBox() {
+    final widths = fit([75, 105, 105, 125, 115], _w - 2 * thick);
+    GCell top(String s) => GCell(
+      '',
+      widget: pw.Center(child: smallCaps(s, size: 9)),
+      align: Al.center,
+    );
+    GCell bottom(String s, {bool hand = false}) => GCell(
+      '',
+      widget: pw.Center(
+        child: hand
+            ? pw.Text(clean(s), style: ts(10, u: true))
+            : smallCaps(s, size: 9),
+      ),
+    );
     return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Container(
-          width: w,
-          height: 14,
-          alignment: pw.Alignment.center,
-          decoration: pw.BoxDecoration(border: pw.Border.all(width: lineW)),
-          child: pw.Text(
-            side == 'import' ? 'IMPORT LOAD' : 'EXPORT LOAD',
-            style: bold,
-          ),
-        ),
-        struck(
-          gridFrame([
-            for (var i = 0; i < 5; i++)
-              gridColumn(
-                header: headers[i],
-                values: [
-                  for (final r in rows) has ? r[i] : (i == 0 ? r[0] : ''),
-                ],
-                width: colW[i],
-                rowHeight: rowH,
-                headerHeight: rowH,
-                boldValues: i == 0,
+        pw.SizedBox(height: 26),
+        formGrid(
+          widths: widths,
+          rows: [
+            GRow([
+              GCell(
+                '',
+                noBottom: true,
+                widget: pw.Align(
+                  alignment: pw.Alignment.bottomCenter,
+                  child: smallCaps('Consumer', size: 9.5),
+                ),
               ),
-          ]),
-          !has,
+              top('Supervisor'),
+              top('SDO (OP)\nSub Division'),
+              top('Executive Engineer'),
+              top('Executive Engineer\n(OP)'),
+            ], height: 21),
+            GRow([
+              const GCell(''),
+              bottom('M&T Circle\nB/Nagar'),
+              bottom(subDivision, hand: true),
+              bottom('M&T Circle B/Nagar'),
+              bottom(division, hand: true),
+            ], height: 21),
+          ],
         ),
       ],
+    );
+  }
+
+  // ==================================================================== page 2
+
+  pw.Widget page2() => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+    children: [
+      _sectionC(),
+      pw.SizedBox(height: 4),
+      _percentLines(),
+      pw.SizedBox(height: 6),
+      _sectionD(),
+      pw.SizedBox(height: 6),
+      _sectionE(),
+      pw.SizedBox(height: 6),
+      _sectionF(),
+      _signatureBox(),
+      pw.SizedBox(height: 14),
+      pw.Align(
+        alignment: pw.Alignment.centerRight,
+        child: pw.Column(
+          children: [
+            pw.Text('Executive Engineer', style: ts(10, b: true)),
+            pw.Text('M&T MEPCO Circle B/Nagar', style: ts(10, b: true)),
+          ],
+        ),
+      ),
+      _ccList(),
+      pw.Spacer(),
+    ],
+  );
+
+  pw.Widget _sectionTitle(String letter, String text) => pw.Padding(
+    padding: const pw.EdgeInsets.only(left: 24, bottom: 2),
+    child: pw.Row(
+      children: [
+        pw.SizedBox(
+          width: 30,
+          child: pw.Text('$letter).', style: ts(8.5, b: true)),
+        ),
+        pw.Text(text, style: ts(8.5, b: true, u: true)),
+      ],
+    ),
+  );
+
+  String _kw(double? v) => v == null ? '' : v.toStringAsFixed(2);
+
+  /// Phase table: Phase | Volts | Amps | KW | P.F, rows Red/Yellow/Blue/Total.
+  pw.Widget _loadTable(String side, double width) {
+    final widths = fit([46, 46, 46, 46, 40], width - 2 * thin);
+    final has = sc.hasSide(side);
+    const names = {'R': 'Red', 'Y': 'Yellow', 'B': 'Blue'};
+    final load = side == 'import' ? sc.importCheckLoad : sc.exportCheckLoad;
+    final rows = <GRow>[
+      GRow([
+        for (final h in ['Phase', 'Volts', 'Amps', 'KW', 'P.F'])
+          GCell(h, bold: true, align: Al.center, size: 7.6),
+      ], height: 11),
+      for (final p in phases)
+        () {
+          final l = b.phaseLoads[phaseKey(side, p)];
+          return GRow([
+            GCell(names[p]!, size: 8),
+            GCell(has ? (l?.volts ?? '') : '', align: Al.center, size: 9.5),
+            GCell(has ? (l?.amps ?? '') : '', align: Al.center, size: 9.5),
+            GCell(
+              has ? _kw(sc.phaseKw[phaseKey(side, p)]) : '',
+              align: Al.center,
+              size: 9.5,
+            ),
+            GCell(has ? (l?.pf ?? '') : '', align: Al.center, size: 9.5),
+          ], height: 15);
+        }(),
+      GRow([
+        const GCell('Total', bold: true, size: 8),
+        GCell(
+          has ? b.report.loadType : '',
+          span: 2,
+          align: Al.center,
+          size: 9.5,
+        ),
+        GCell(
+          has
+              ? (side == 'import' &&
+                        b.report.checkLoadOverride.trim().isNotEmpty
+                    ? '${b.report.checkLoadOverride.trim()} Kw'
+                    : (load == null ? '' : '${_kw(load)} Kw'))
+              : '',
+          span: 2,
+          align: Al.center,
+          size: 9.5,
+        ),
+      ], height: 15),
+    ];
+    return formGrid(
+      widths: widths,
+      rows: rows,
+      frame: thin,
+      strikes: [if (!has) const Strike(1, 4, 1, 4)],
     );
   }
 
   pw.Widget _sectionC() {
-    final within = sc.within;
-    final method =
-        settings[SettingKeys.checkLoadMethod] == SettingKeys.methodSum
-        ? 'sum of phases'
-        : 'average of phases';
-    final errText = percentErrorText(b, sc);
-    final checkLoad = b.report.checkLoadOverride.trim().isNotEmpty
-        ? b.report.checkLoadOverride.trim()
-        : fmtNum(sc.importCheckLoad);
+    if (isNew) {
+      const leftW = 300.0;
+      final boxW = _w - leftW - 12;
+      final bw = fit([46, 32, 22, 32, 22, 32], boxW - 2 * thin);
+      GCell l(String s) => GCell(s, size: 6.8);
+      final box = formGrid(
+        widths: bw,
+        frame: thin,
+        rows: [
+          GRow([
+            const GCell('Existing Meter', span: 6, size: 6.8, bold: true),
+          ], height: 10),
+          GRow([
+            l('Avg. Kw'),
+            l(''),
+            l('T.C'),
+            l(''),
+            l('T.O'),
+            l(''),
+          ], height: 11),
+          GRow([l('%Error'), const GCell('', span: 5)], height: 10),
+          GRow([
+            const GCell('AMR Meter', span: 6, size: 6.8, bold: true),
+          ], height: 10),
+          GRow([
+            l('Avg. Kw'),
+            l(''),
+            l('T.C'),
+            l(''),
+            l('T.O'),
+            l(''),
+          ], height: 11),
+          GRow([l('%Error'), const GCell('', span: 5)], height: 10),
+        ],
+        strikes: const [Strike(1, 5, 0, 5)],
+      );
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('C', 'METER CHECKING RESULTS OF EXISTING AMR METERS'),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              _loadTable('import', leftW),
+              pw.SizedBox(width: 12),
+              box,
+            ],
+          ),
+        ],
+      );
+    }
+    const gap = 40.0;
+    final tw = (_w - gap - 40) / 2;
+    pw.Widget side(String label, String key) => pw.Column(
+      children: [
+        pw.Text(label, style: ts(8, b: true)),
+        _loadTable(key, tw),
+      ],
+    );
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            _loadTable('import'),
-            pw.SizedBox(width: 10),
-            _loadTable('export'),
-          ],
-        ),
-        pw.SizedBox(height: 4),
-        labelValue(
-          'Check load: ',
-          checkLoad.isEmpty ? '' : '$checkLoad KW ($method)',
-        ),
-        pw.SizedBox(height: 2),
-        labelValue(
-          t.isNet
-              ? '% age Billing / B/UP meter recorded instantaneous KW: '
-              : '% age error of meter recorded instantaneous KW: ',
-          errText,
-        ),
-        pw.SizedBox(height: 2),
-        labelValue(
-          'Within permissible limits of error: ',
-          within == null ? '' : (within ? 'Yes' : 'No'),
+        _sectionTitle('C', 'METER CHECKING RESULTS OF EXISTING METERS'),
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(left: 20),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              side('(Import Load)', 'import'),
+              pw.SizedBox(width: gap),
+              side('(Export Load)', 'export'),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  pw.Widget _sectionD() {
-    final cols = b.columns;
-    final anySeal = b.seals.values.any((s) => !s.isEmpty);
-    const rowH = 13.0;
-    const labelW = 70.0;
-    final colW = (_contentWidth - labelW) / cols.length;
-    final grid = gridFrame([
-      gridColumn(
-        header: 'Seal at',
-        values: [for (final s in sealSpots) s.label],
-        width: labelW,
-        rowHeight: rowH,
-        headerHeight: rowH * 2,
-        boldValues: true,
-        centerValues: false,
-      ),
-      for (final c in cols)
-        () {
-          final hasSeals = sealSpots.any(
-            (s) => !(b.seals[sealKey(s.code, c.role)]?.isEmpty ?? true),
-          );
-          final strike = anySeal && !hasSeals;
-          return struck(
-            pw.Column(
+  /// "% age  Billing / B/UP Meter Recorded Instantaneous K.W" with values.
+  pw.Widget _percentLines() {
+    String line(String role) {
+      final kw = sc.instantImport[role];
+      if (kw == null) return '';
+      final err = sc.errorImport[role];
+      return '${kw.toStringAsFixed(2)} Kw${err == null ? '' : '   (${err.toStringAsFixed(2)} %)'}';
+    }
+
+    final override = b.report.percentErrorOverride.trim();
+    final within = sc.within == null
+        ? ''
+        : (sc.within! ? '' : '  NOT within limits');
+    final l1 = isNew
+        ? 'AMR Meter Recorded Instantaneous K.W'
+        : 'Billing  Meter Recorded Instantaneous K.W';
+    final l2 = isNew
+        ? 'TOU Meter Recorded Instantaneous K.W'
+        : 'B/UP   Meter Recorded Instantaneous K.W';
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(left: 24),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.end,
+        children: [
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('% age', style: ts(7.5, b: true)),
+              pw.Text(l1, style: ts(7.8, b: true)),
+              pw.Text(l2, style: ts(7.8, b: true)),
+            ],
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
-                cell(
-                  t.column(c.role).label,
-                  width: colW,
-                  height: rowH,
-                  isBold: true,
-                  center: true,
+                pw.Text(
+                  'Within Permissible Limits of Error',
+                  style: ts(7.8, b: true, u: true),
                 ),
                 pw.Row(
                   children: [
-                    gridColumn(
-                      header: 'M&T Seals',
-                      values: [
-                        for (final s in sealSpots)
-                          b.seals[sealKey(s.code, c.role)]?.mtSeal ?? '',
-                      ],
-                      width: colW / 2,
-                      rowHeight: rowH,
-                      headerHeight: rowH,
-                    ),
-                    gridColumn(
-                      header: 'Postal Orders',
-                      values: [
-                        for (final s in sealSpots)
-                          b.seals[sealKey(s.code, c.role)]?.postalOrder ?? '',
-                      ],
-                      width: colW / 2,
-                      rowHeight: rowH,
-                      headerHeight: rowH,
+                    blank(
+                      override.isNotEmpty ? '$override %' : line(col2) + within,
+                      align: pw.Alignment.bottomLeft,
                     ),
                   ],
                 ),
+                pw.Row(
+                  children: [blank(line(col3), align: pw.Alignment.bottomLeft)],
+                ),
               ],
             ),
-            strike,
-          );
-        }(),
-    ]);
-    return struck(grid, !anySeal);
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------ D
+
+  pw.Widget _sectionD() {
+    final removed = b.column(ColumnRole.removed);
+    final groups = [
+      ('Removed Meter', removed.role),
+      (isNet || !isNew ? 'Billing  Meter' : 'AMR Meter', col2),
+      (isNet || !isNew ? 'Backup  Meter' : 'Existing Meter', col3),
+    ];
+    SealValues? seal(String spot, String role) => b.seals[sealKey(spot, role)];
+    bool hasSeals(String role) =>
+        sealSpots.any((sp) => !(seal(sp.code, role)?.isEmpty ?? true));
+    final widths = fit([56, 40, 62, 52, 40, 76, 40, 76], _w - 2 * thick);
+    GCell h(String s, {int span = 1}) =>
+        GCell(s, span: span, bold: true, align: Al.center, size: 7.6);
+    GCell v(String s) => GCell(s, align: Al.center, size: 9);
+    final rows = <GRow>[
+      GRow([
+        GCell('', noBottom: true, widget: pw.SizedBox()),
+        h(groups[0].$1, span: 3),
+        h(groups[1].$1, span: 2),
+        h(groups[2].$1, span: 2),
+      ], height: 12),
+      GRow([
+        h('SPOT'),
+        h('M&T\nSeals'),
+        h('Postal Orders'),
+        h('AMR Meter'),
+        h('M&T\nSeals'),
+        h('Postal Orders'),
+        h('M&T\nSeals'),
+        h('Postal Orders'),
+      ], height: 19),
+      for (final sp in sealSpots)
+        GRow([
+          GCell(
+            sp.label
+                .toUpperCase()
+                .replaceAll('GLASS', 'Glass')
+                .replaceAll('T/FORMER', 'T/Former'),
+            bold: true,
+            size: 7.2,
+          ),
+          v(seal(sp.code, groups[0].$2)?.mtSeal ?? ''),
+          v(seal(sp.code, groups[0].$2)?.postalOrder ?? ''),
+          v(''),
+          v(seal(sp.code, groups[1].$2)?.mtSeal ?? ''),
+          v(seal(sp.code, groups[1].$2)?.postalOrder ?? ''),
+          v(seal(sp.code, groups[2].$2)?.mtSeal ?? ''),
+          v(seal(sp.code, groups[2].$2)?.postalOrder ?? ''),
+        ], height: 16),
+    ];
+    final last = rows.length - 1;
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('D', 'SEALING STATUS / RECORD'),
+        formGrid(
+          widths: widths,
+          rows: rows,
+          strikes: [
+            if (!hasSeals(groups[0].$2)) Strike(1, 3, 2, last),
+            if (!hasSeals(groups[1].$2)) Strike(4, 5, 2, last),
+            if (!hasSeals(groups[2].$2)) Strike(6, 7, 2, last),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------------ E
+
+  pw.Widget _line(List<pw.Widget> children) => pw.Padding(
+    padding: const pw.EdgeInsets.only(top: 4),
+    child: pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.end,
+      children: children,
+    ),
+  );
+
+  pw.Widget _label(String s) => pw.Text(s, style: ts(8.6, b: true, u: true));
+
+  /// Ruled lines with [text] written on them; struck through when empty.
+  pw.Widget _ruled(String text, int count, {int maxChars = 118}) {
+    final lines = wrapText(clean(text), maxChars);
+    final n = lines.length > count ? lines.length : count;
+    final block = pw.Column(
+      children: [
+        for (var i = 0; i < n; i++)
+          pw.Container(
+            height: 15,
+            alignment: pw.Alignment.bottomLeft,
+            padding: const pw.EdgeInsets.only(left: 4, bottom: 1),
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(bottom: pw.BorderSide(width: 0.5)),
+            ),
+            child: pw.Text(i < lines.length ? lines[i] : '', style: ts(9.5)),
+          ),
+      ],
+    );
+    return struck(block, text.trim().isEmpty);
   }
 
   pw.Widget _sectionE() {
     final r = b.report;
-    pw.Widget box(pw.Widget child, {bool strike = false}) => struck(
-      pw.Container(
-        width: _contentWidth,
-        padding: const pw.EdgeInsets.all(4),
-        decoration: pw.BoxDecoration(border: pw.Border.all(width: lineW)),
-        child: child,
-      ),
-      strike,
+    final title = _sectionTitle(
+      'E',
+      'ANY DISCREPANCY IF OBSERVED WITH REMARKS AND RECOMMENDATIONS',
     );
-
-    if (t.isNewConnection) {
-      return box(
-        pw.Text(
-          clean(r.remarks),
-          style: normal,
-          textAlign: pw.TextAlign.justify,
-        ),
-        strike: r.remarks.trim().isEmpty,
+    if (isNew) {
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          title,
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 30),
+            child: _newConnectionParagraph(),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 30),
+            child: _ruled('', 3),
+          ),
+        ],
       );
     }
     final checked = r.checkedLoadKw.trim();
-    final lines = <(String, String)>[
-      ('MSB Status', r.msbStatus),
-      ('Postal Orders', r.postalOrdersText),
-      ('Checked Load', checked.isEmpty ? '' : '$checked KW'),
-      ('Export Load', r.exportLoadText),
-      ('Accuracy', r.accuracyText),
-      ('Transformer LT Bushes', r.transformerLtBushes),
-    ];
-    final allEmpty =
-        lines.every((l) => l.$2.trim().isEmpty) && r.remarks.trim().isEmpty;
-    return box(
-      pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < lines.length; i++)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(bottom: 1.5),
-              child: labelValue('${i + 1}. ${lines[i].$1}: ', lines[i].$2),
-            ),
-          if (r.remarks.trim().isNotEmpty) ...[
-            pw.SizedBox(height: 2),
-            labelValue('${lines.length + 1}. Remarks: ', r.remarks.trim()),
-          ],
-        ],
-      ),
-      strike: allEmpty,
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: [
+        title,
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(left: 30),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              _line([
+                _label('A/C No.'),
+                blank(
+                  '${a('account_no')}${a('tariff').isEmpty ? '' : '/${a('tariff')}'}',
+                  width: 170,
+                ),
+                pw.SizedBox(width: 10),
+                _label('Name :'),
+                blank('${a('name')} $subDivision'.trim()),
+              ]),
+              _line([
+                _label('Site Visited on Dated:'),
+                blank(fmtDate(r.visitDate), width: 80),
+                pw.SizedBox(width: 6),
+                _label('MSB Status:'),
+                blank(r.msbStatus, width: 110),
+                pw.SizedBox(width: 6),
+                _label('Postal orders:'),
+                blank(r.postalOrdersText),
+              ]),
+              _line([
+                _label('Checked on H/ load/R/load (Import Load) ='),
+                blank(checked.isEmpty ? '' : '$checked Kw', width: 120),
+                _label(',(Export Load)='),
+                blank(r.exportLoadText),
+              ]),
+              _line([
+                _label('Accuracy :'),
+                blank(r.accuracyText, align: pw.Alignment.bottomLeft),
+              ]),
+              _line([
+                _label('TransformerLTBushes :'),
+                blank(r.transformerLtBushes, align: pw.Alignment.bottomLeft),
+              ]),
+              pw.SizedBox(height: 2),
+              _ruled(r.remarks, 9),
+            ],
+          ),
+        ),
+      ],
     );
+  }
+
+  /// NEW_CONNECTION paragraph with the filled-in values underlined. If the
+  /// officer edited the paragraph by hand, that text is printed as typed.
+  pw.Widget _newConnectionParagraph() {
+    final r = b.report;
+    final auto = newConnectionRemarks(b);
+    final edited =
+        r.remarks.trim().isNotEmpty && r.remarks.trim() != auto.trim();
+    if (edited) {
+      return pw.Text(
+        clean(r.remarks),
+        textAlign: pw.TextAlign.justify,
+        style: ts(9).copyWith(lineSpacing: 4),
+      );
+    }
+    final values = newConnectionValues(b);
+    final spans = <pw.TextSpan>[];
+    final re = RegExp(r'\{(\w+)\}');
+    var pos = 0;
+    for (final m in re.allMatches(newConnectionRemarksTemplate)) {
+      spans.add(
+        pw.TextSpan(
+          text: newConnectionRemarksTemplate.substring(pos, m.start),
+          style: ts(8.8, b: true),
+        ),
+      );
+      final v = (values[m[1]!] ?? '').trim();
+      spans.add(
+        pw.TextSpan(
+          text: clean(v.isEmpty ? '________' : ' $v '),
+          style: ts(9.6, u: true),
+        ),
+      );
+      pos = m.end;
+    }
+    spans.add(
+      pw.TextSpan(
+        text: newConnectionRemarksTemplate.substring(pos),
+        style: ts(8.8, b: true),
+      ),
+    );
+    return pw.RichText(
+      textAlign: pw.TextAlign.justify,
+      text: pw.TextSpan(
+        children: spans,
+        style: ts(8.8).copyWith(lineSpacing: 5),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------ F
+
+  String _engr(String name) {
+    final n = name.trim().replaceFirst(
+      RegExp(r'^engr\.?\s*', caseSensitive: false),
+      '',
+    );
+    return 'Engr. $n';
   }
 
   pw.Widget _sectionF() {
     final r = b.report;
-    final names = [r.signerExenOp, r.signerSdoOp, r.signer3, r.signer4];
-    return pw.Table(
-      border: pw.TableBorder.all(width: lineW),
-      columnWidths: const {0: pw.FixedColumnWidth(18), 1: pw.FlexColumnWidth()},
+    final widths = fit([18, 230, 290], _w - 2 * thick);
+    final xen = s[SettingKeys.xenMt] ?? '';
+    final ti = s[SettingKeys.testInspector] ?? '';
+    final none = r.signerExenOp.trim().isEmpty && r.signerSdoOp.trim().isEmpty;
+    pw.Widget right(String fixed, String value) => pw.RichText(
+      text: pw.TextSpan(
+        children: [
+          pw.TextSpan(text: fixed, style: ts(8.8, b: true)),
+          pw.TextSpan(
+            text: clean(value.isEmpty ? '______________' : ' $value '),
+            style: ts(9.5, u: true),
+          ),
+        ],
+      ),
+    );
+    final rows = [
+      GRow([
+        const GCell('1', bold: true, align: Al.center, size: 8.5),
+        GCell(_engr(xen), size: 9),
+        GCell(
+          'Executive Engineer M&T MEPCO Circle $circle',
+          bold: true,
+          size: 8.8,
+        ),
+      ], height: 15),
+      GRow([
+        const GCell('2', bold: true, align: Al.center, size: 8.5),
+        GCell(none ? 'Engr.' : _engr(r.signerExenOp), size: 9),
+        GCell(
+          '',
+          widget: right(
+            'Executive Engineer (OP) MEPCO Div.',
+            none ? '' : division,
+          ),
+        ),
+      ], height: 15),
+      GRow([
+        const GCell('3', bold: true, align: Al.center, size: 8.5),
+        GCell(none ? 'Engr.' : _engr(r.signerSdoOp), size: 9),
+        GCell(
+          '',
+          widget: right(
+            'Sub Divisional Officer (OP) S/Div.',
+            none ? '' : subDivision,
+          ),
+        ),
+      ], height: 15),
+      GRow([
+        const GCell('4', bold: true, align: Al.center, size: 8.5),
+        GCell(
+          'Work of installation is supervised by $ti Test Inspector  M&T Circle $circle.',
+          span: 2,
+          size: 8.8,
+        ),
+      ], height: 15),
+    ];
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < 4; i++)
-          pw.TableRow(
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(left: 8, bottom: 2),
+          child: pw.Row(
             children: [
-              pw.Container(
-                height: 13,
-                alignment: pw.Alignment.center,
-                child: pw.Text('${i + 1}', style: bold),
+              pw.SizedBox(
+                width: 28,
+                child: pw.Text('F).', style: ts(9, b: true)),
               ),
-              pw.Container(
-                height: 13,
-                padding: const pw.EdgeInsets.symmetric(horizontal: 3),
-                alignment: pw.Alignment.centerLeft,
-                child: pw.Text(clean(names[i]), style: normal),
+              pw.Text(
+                'Postal Orders Signed by (in case of MCO / New Installation)',
+                style: ts(9, b: true),
               ),
             ],
           ),
-      ],
-    );
-  }
-
-  pw.Widget _signatures() {
-    final labels = [
-      'Consumer',
-      'Supervisor M&T\nCircle B/Nagar',
-      'SDO (OP)\nSub Division ${b.report.toSubDivision}',
-      'Executive Engineer M&T\nCircle B/Nagar',
-      'Executive Engineer (OP)\n$division',
-    ];
-    return pw.Table(
-      border: pw.TableBorder.all(width: lineW),
-      children: [
-        pw.TableRow(
-          children: [for (final _ in labels) pw.SizedBox(height: 34)],
         ),
-        pw.TableRow(
-          children: [
-            for (final l in labels)
-              pw.Container(
-                height: 22,
-                alignment: pw.Alignment.center,
-                padding: const pw.EdgeInsets.symmetric(horizontal: 2),
-                child: pw.Text(
-                  l,
-                  textAlign: pw.TextAlign.center,
-                  style: pw.TextStyle(
-                    fontSize: fsSmall,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-          ],
+        formGrid(
+          widths: widths,
+          rows: rows,
+          strikes: [if (none) const Strike(1, 2, 0, 2)],
         ),
       ],
     );
   }
-
-  pw.Widget _signOff() => pw.Align(
-    alignment: pw.Alignment.centerRight,
-    child: pw.SizedBox(
-      width: 190,
-      child: pw.Column(
-        children: [
-          pw.SizedBox(height: 18),
-          pw.Text(settings[SettingKeys.xenMt] ?? '', style: bold),
-          pw.Text('Executive Engineer M&T', style: bold),
-          pw.Text('MEPCO Circle B/Nagar', style: bold),
-        ],
-      ),
-    ),
-  );
 
   pw.Widget _ccList() {
-    final lines = (settings[SettingKeys.ccList] ?? '')
+    final lines = (s[SettingKeys.ccList] ?? '')
         .split('\n')
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
@@ -706,13 +1241,24 @@ class _ReportPdf {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text('C.C:', style: bold),
+        pw.Text('C.C To', style: ts(9.5, b: true)),
         for (var i = 0; i < lines.length; i++)
           pw.Padding(
-            padding: const pw.EdgeInsets.only(left: 12, top: 1),
-            child: pw.Text(
-              '${i + 1}. ${fillTemplate(lines[i], {'division': division})}',
-              style: const pw.TextStyle(fontSize: fsSmall + 0.4),
+            padding: const pw.EdgeInsets.only(left: 22, top: 1),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.SizedBox(
+                  width: 16,
+                  child: pw.Text('${i + 1}.', style: ts(9.2)),
+                ),
+                pw.Expanded(
+                  child: pw.Text(
+                    clean(fillTemplate(lines[i], {'division': division})),
+                    style: ts(9.2),
+                  ),
+                ),
+              ],
             ),
           ),
       ],

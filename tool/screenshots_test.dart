@@ -79,7 +79,7 @@ void main() {
       router.push('/reports/${ids[0]}');
       await settle(tester);
       await shot('03_header');
-      final steps = {1: '04_section_a', 2: '05_meters', 3: '06_readings', 4: '07_section_c', 5: '08_seals', 8: '09_review'};
+      final steps = {1: '04_section_a', 2: '05_meters', 3: '06_readings', 4: '07_section_c', 5: '08_seals', 6: '08b_remarks', 7: '08c_signers', 8: '09_review'};
       var at = 0;
       for (final e in steps.entries) {
         while (at < e.key) {

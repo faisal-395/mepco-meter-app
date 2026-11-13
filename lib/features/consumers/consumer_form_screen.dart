@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/providers.dart';
+import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../domain/calculations.dart';
 import '../../domain/formatters.dart';
@@ -62,29 +63,77 @@ class _SectionAEditorState extends State<SectionAEditor> {
       widget.values['ct_primary'] ?? '',
       widget.values['ct_secondary'] ?? '',
     );
-    return ResponsiveFields(
+    Widget field(SectionAField f) => f.date
+        ? TextDateField(
+            label: f.label,
+            value: widget.values[f.code] ?? '',
+            onChanged: (v) => _set(f.code, v),
+          )
+        : AppField(
+            label: f.label,
+            value: widget.values[f.code] ?? '',
+            numeric: f.numeric,
+            enabled: widget.enabled,
+            suggestions: f.suggestions,
+            helper: f.code == 'mf'
+                ? (calc == null
+                      ? 'CT primary / CT secondary'
+                      : 'From CT ratio: ${fmtCompact(calc)}'
+                            '${_mfManual ? ' (edited by hand)' : ''}')
+                : null,
+            onChanged: (v) => _set(f.code, v),
+          );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final f in sectionAFields)
-          if (f.date)
-            TextDateField(
-              label: f.label,
-              value: widget.values[f.code] ?? '',
-              onChanged: (v) => _set(f.code, v),
-            )
-          else
-            AppField(
-              label: f.label,
-              value: widget.values[f.code] ?? '',
-              numeric: f.numeric,
-              enabled: widget.enabled,
-              helper: f.code == 'mf'
-                  ? (calc == null
-                        ? 'CT primary / CT secondary'
-                        : 'From CT ratio: ${fmtCompact(calc)}'
-                              '${_mfManual ? ' (edited by hand)' : ''}')
-                  : null,
-              onChanged: (v) => _set(f.code, v),
+        for (final g in sectionAGroups)
+          Container(
+            padding: const EdgeInsets.only(top: 10, bottom: 4),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.line)),
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 22,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: g.no == null ? AppColors.gold : AppColors.navy,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        g.no == null ? '•' : '${g.no}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        g.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.navy,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                ResponsiveFields(
+                  children: [for (final f in g.fields) field(f)],
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

@@ -18,6 +18,9 @@ class Consumers extends Table {
   TextColumn get transformerNo => text().withDefault(const Constant(''))();
   TextColumn get ctPrimary => text().withDefault(const Constant(''))();
   TextColumn get ctSecondary => text().withDefault(const Constant(''))();
+
+  /// Added in schema v2: "VA Burden" of the CTs (section A cell 9).
+  TextColumn get ctVaBurden => text().withDefault(const Constant(''))();
   TextColumn get mf => text().withDefault(const Constant(''))();
   TextColumn get cableSize => text().withDefault(const Constant(''))();
   TextColumn get msbType => text().withDefault(const Constant(''))();
@@ -79,6 +82,9 @@ class Reports extends Table {
   TextColumn get msbStatus => text().withDefault(const Constant(''))();
   TextColumn get postalOrdersText => text().withDefault(const Constant(''))();
   TextColumn get checkedLoadKw => text().withDefault(const Constant(''))();
+
+  /// Added in schema v2: load used for the check, printed in the C total row.
+  TextColumn get loadType => text().withDefault(const Constant('3Ø H/Load'))();
   TextColumn get exportLoadText => text().withDefault(const Constant(''))();
   TextColumn get accuracyText => text().withDefault(const Constant(''))();
   TextColumn get transformerLtBushes =>

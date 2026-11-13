@@ -16,6 +16,7 @@ class AppField extends StatefulWidget {
     this.helper,
     this.enabled = true,
     this.hint,
+    this.suggestions = const [],
   });
 
   final String label;
@@ -26,6 +27,9 @@ class AppField extends StatefulWidget {
   final String? helper;
   final String? hint;
   final bool enabled;
+
+  /// Quick-pick values shown as chips under the field (tap to fill).
+  final List<String> suggestions;
 
   @override
   State<AppField> createState() => _AppFieldState();
@@ -56,6 +60,34 @@ class _AppFieldState extends State<AppField> {
 
   @override
   Widget build(BuildContext context) {
+    final field = _field();
+    if (widget.suggestions.isEmpty || !widget.enabled) return field;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        field,
+        Wrap(
+          spacing: 6,
+          runSpacing: 0,
+          children: [
+            for (final s in widget.suggestions)
+              ChoiceChip(
+                label: Text(s),
+                selected: _c.text.trim() == s,
+                visualDensity: VisualDensity.compact,
+                onSelected: (_) {
+                  setState(() => _c.text = s);
+                  widget.onChanged(s);
+                },
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+
+  Widget _field() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
@@ -77,7 +109,10 @@ class _AppFieldState extends State<AppField> {
           helperText: widget.helper,
           hintText: widget.hint,
         ),
-        onChanged: widget.onChanged,
+        onChanged: (v) {
+          if (widget.suggestions.isNotEmpty) setState(() {});
+          widget.onChanged(v);
+        },
       ),
     );
   }

@@ -87,45 +87,38 @@ class HeaderStep extends StatelessWidget {
           child: ResponsiveFields(
             children: [
               AppField(
-                label: 'Memo No',
+                label: 'Memo No.',
                 value: r.memoNo,
                 onChanged: (v) => _set((r) => r.copyWith(memoNo: v)),
               ),
               DateField(
-                label: 'Memo dated',
+                label: 'Dated',
                 value: r.memoDate,
                 onChanged: (d) => _set((r) => r.copyWith(memoDate: Value(d))),
-              ),
-              AppField(
-                label: 'To: SDO (OP), Sub Division',
-                value: r.toSubDivision,
-                onChanged: (v) => _set((r) => r.copyWith(toSubDivision: v)),
               ),
             ],
           ),
         ),
         FormSection(
-          title: 'Reference',
+          title: 'To: The Sub Divisional Officer (OP)',
+          child: AppField(
+            label: 'MEPCO Sub Division',
+            value: r.toSubDivision,
+            onChanged: (v) => _set((r) => r.copyWith(toSubDivision: v)),
+          ),
+        ),
+        FormSection(
+          title: 'Ref: Your memo No. / Telephonic message / Seasonal / Routine check',
           child: ResponsiveFields(
             children: [
-              DropdownButtonFormField<String>(
-                initialValue: refTypes.containsKey(r.refType)
-                    ? r.refType
-                    : 'memo',
-                decoration: const InputDecoration(labelText: 'Reference type'),
-                items: [
-                  for (final e in refTypes.entries)
-                    DropdownMenuItem(value: e.key, child: Text(e.value)),
-                ],
-                onChanged: (v) => _set((r) => r.copyWith(refType: v ?? 'memo')),
-              ),
               AppField(
-                label: 'Ref No',
+                label: 'Memo / message No.',
                 value: r.refNo,
+                hint: 'Leave empty for routine check',
                 onChanged: (v) => _set((r) => r.copyWith(refNo: v)),
               ),
               DateField(
-                label: 'Ref dated',
+                label: 'Dated',
                 value: r.refDate,
                 onChanged: (d) => _set((r) => r.copyWith(refDate: Value(d))),
               ),
@@ -137,16 +130,17 @@ class HeaderStep extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              AppField(
+                label: 'The undersigned along with … & yourself',
+                value: r.teamText,
+                maxLines: 2,
+                hint: 'Mr. Abdul Hafeez (TI), Sajid Naveed (T.A)',
+                onChanged: (v) => _set((r) => r.copyWith(teamText: v)),
+              ),
               DateField(
-                label: 'Visit date',
+                label: 'Visited the premises on dated',
                 value: r.visitDate,
                 onChanged: (d) => _set((r) => r.copyWith(visitDate: Value(d))),
-              ),
-              AppField(
-                label: 'Team (named in the intro paragraph)',
-                value: r.teamText,
-                maxLines: 3,
-                onChanged: (v) => _set((r) => r.copyWith(teamText: v)),
               ),
             ],
           ),

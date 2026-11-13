@@ -135,12 +135,12 @@ String percentErrorText(ReportBundle b, SectionC c) {
   return parts.join(', ');
 }
 
-/// Section E paragraph of a NEW_CONNECTION report, filled from the template.
-String newConnectionRemarks(ReportBundle b) {
+/// Values for the blanks of the NEW_CONNECTION paragraph.
+Map<String, String> newConnectionValues(ReportBundle b) {
   final a = b.sectionA;
   final r = b.report;
   String g(String k) => (a[k] ?? '').trim();
-  return fillTemplate(newConnectionRemarksTemplate, {
+  return {
     'consumer_name': g('name'),
     'visit_date': fmtDate(r.visitDate),
     'op_division': g('op_division'),
@@ -158,5 +158,9 @@ String newConnectionRemarks(ReportBundle b) {
         ? ''
         : '${g('ct_primary')}/${g('ct_secondary')}',
     'checked_load_kw': r.checkedLoadKw,
-  });
+  };
 }
+
+/// Section E paragraph of a NEW_CONNECTION report, filled from the template.
+String newConnectionRemarks(ReportBundle b) =>
+    fillTemplate(newConnectionRemarksTemplate, newConnectionValues(b));

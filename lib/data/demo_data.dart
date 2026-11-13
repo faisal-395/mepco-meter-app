@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 
 import '../domain/formatters.dart';
 import '../domain/models.dart';
-import '../domain/report_calc.dart';
 import '../domain/report_templates.dart';
 import 'daos.dart';
 import 'database.dart';
@@ -95,7 +94,7 @@ Future<int> _demo1(AppDatabase db) async {
     visitDate: Value(_d('06-10-26')),
     refType: 'routine',
     toSubDivision: 'F/Abbas',
-    teamText: 'Mr. Abdul Hafeez Test Inspector M&T, Sajid Naveed T.A M&T',
+    teamText: 'Mr. Abdul Hafeez (TI), Sajid Naveed (T.A)',
     msbStatus: 'Welded',
     accuracyText: 'OK',
     transformerLtBushes: 'Sealed',
@@ -192,7 +191,7 @@ Future<int> _demo2(AppDatabase db) async {
     visitDate: Value(_d('06-10-26')),
     refType: 'routine',
     toSubDivision: 'F/Abbas',
-    teamText: 'Mr. Abdul Hafeez Test Inspector M&T, Sajid Naveed T.A M&T',
+    teamText: 'Mr. Abdul Hafeez (TI), Sajid Naveed (T.A)',
   );
   b.column(ColumnRole.billing).readings.addAll({
     'date': '06-10-26',
@@ -291,14 +290,14 @@ Future<int> _demo3(AppDatabase db) async {
     refType: 'memo',
     refNo: '10001-05',
     refDate: Value(_d('29-10-26')),
-    teamText: 'Mr. Abdul Hafeez Test Inspector M&T, Sajid Naveed T.A M&T',
+    teamText: 'Mr. Abdul Hafeez (TI), Sajid Naveed (T.A)',
     storeChallanNo: '1001',
     storeChallanDate: Value(_d('30-10-26')),
     newMeterCount: '1',
     ctCount: '4',
     checkedLoadKw: '14.78',
-    signerExenOp: 'Engr. Test One (EXEN OP CTN)',
-    signerSdoOp: 'Engr. Test Two (SDO OP S/Town CTN)',
+    signerExenOp: 'Test One',
+    signerSdoOp: 'Test Two',
   );
   b.column(ColumnRole.amr).readings.addAll({
     'date': '05-11-26',
@@ -325,7 +324,6 @@ Future<int> _demo3(AppDatabase db) async {
     'TFORMER': 'TA-900009-10-11-12',
   };
   seals.forEach((spot, v) => b.seal(spot, ColumnRole.amr).postalOrder = v);
-  b.report = b.report.copyWith(remarks: newConnectionRemarks(b));
   await dao.saveBundle(b);
   return id;
 }

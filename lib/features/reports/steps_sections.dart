@@ -49,6 +49,15 @@ class SectionCStep extends StatelessWidget {
             child: _LoadTable(c: c, side: side, sc: sc),
           ),
         FormSection(
+          title: 'Load used for checking (Total row)',
+          child: AppField(
+            label: 'Load',
+            value: r.loadType,
+            suggestions: const ['3Ø H/Load', '3Ø R/Load', '1Ø H/Load'],
+            onChanged: (v) => _setReport(c, (r) => r.copyWith(loadType: v)),
+          ),
+        ),
+        FormSection(
           title: 'Results',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -260,9 +269,11 @@ class SectionDStep extends StatelessWidget {
 
   Future<void> _fillRange(BuildContext context) async {
     final b = c.bundle;
-    final cols = b.columns.where((x) => !x.notApplicable).toList();
+    final cols = sealGroups(b)
+        .where((g) => !b.column(g.$2).notApplicable)
+        .toList();
     if (cols.isEmpty) return;
-    var role = cols.first.role;
+    var role = cols.first.$2;
     var postal = true;
     var first = '';
     final counts = {
@@ -293,10 +304,7 @@ class SectionDStep extends StatelessWidget {
                   decoration: const InputDecoration(labelText: 'Column'),
                   items: [
                     for (final col in cols)
-                      DropdownMenuItem(
-                        value: col.role,
-                        child: Text(b.template.column(col.role).label),
-                      ),
+                      DropdownMenuItem(value: col.$2, child: Text(col.$1)),
                   ],
                   onChanged: (v) => setD(() => role = v!),
                 ),
@@ -381,7 +389,9 @@ class SectionDStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = c.bundle;
-    final cols = b.columns.where((x) => !x.notApplicable).toList();
+    final cols = sealGroups(b)
+        .where((g) => !b.column(g.$2).notApplicable)
+        .toList();
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -405,7 +415,7 @@ class SectionDStep extends StatelessWidget {
         const SizedBox(height: 12),
         for (final col in cols)
           FormSection(
-            title: b.template.column(col.role).label,
+            title: col.$1,
             child: Table(
               border: TableBorder.all(color: AppColors.line),
               columnWidths: const {0: FixedColumnWidth(92)},
@@ -444,11 +454,11 @@ class SectionDStep extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.all(3),
                         child: CompactField(
-                          value: b.seal(spot.code, col.role).mtSeal,
+                          value: b.seal(spot.code, col.$2).mtSeal,
                           numeric: false,
                           textAlign: TextAlign.start,
                           onChanged: (v) {
-                            b.seal(spot.code, col.role).mtSeal = v;
+                            b.seal(spot.code, col.$2).mtSeal = v;
                             c.changed();
                           },
                         ),
@@ -456,11 +466,11 @@ class SectionDStep extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.all(3),
                         child: CompactField(
-                          value: b.seal(spot.code, col.role).postalOrder,
+                          value: b.seal(spot.code, col.$2).postalOrder,
                           numeric: false,
                           textAlign: TextAlign.start,
                           onChanged: (v) {
-                            b.seal(spot.code, col.role).postalOrder = v;
+                            b.seal(spot.code, col.$2).postalOrder = v;
                             c.changed();
                           },
                         ),
@@ -491,131 +501,153 @@ class _SectionEStepState extends State<SectionEStep> {
     super.initState();
     final c = widget.c;
     final r = c.bundle.report;
-    var changed = false;
     if (r.checkedLoadKw.trim().isEmpty && c.sectionC.importCheckLoad != null) {
       c.bundle.report = c.bundle.report.copyWith(
         checkedLoadKw: fmtNum(c.sectionC.importCheckLoad),
       );
-      changed = true;
-    }
-    if (c.bundle.template.isNewConnection &&
-        c.bundle.report.remarks.trim().isEmpty) {
-      c.bundle.report = c.bundle.report.copyWith(
-        remarks: newConnectionRemarks(c.bundle),
-      );
-      changed = true;
-    }
-    if (changed) {
       WidgetsBinding.instance.addPostFrameCallback((_) => c.changed());
     }
   }
+
+  void _set(Report Function(Report r) f) =>
+      setState(() => _setReport(widget.c, f));
 
   @override
   Widget build(BuildContext context) {
     final c = widget.c;
     final r = c.bundle.report;
     final computed = c.sectionC.importCheckLoad;
-    final isNew = c.bundle.template.isNewConnection;
+    final checked = AppField(
+      key: ValueKey('checked-${r.checkedLoadKw}'),
+      label: 'Checked on H/load / R/load (Import Load) = … Kw',
+      value: r.checkedLoadKw,
+      numeric: true,
+      suggestions: [if (computed != null) fmtNum(computed)],
+      helper: computed == null
+          ? null
+          : 'Check load from section C: ${fmtNum(computed)}',
+      onChanged: (v) => _setReport(c, (r) => r.copyWith(checkedLoadKw: v)),
+    );
+
+    if (c.bundle.template.isNewConnection) {
+      final auto = newConnectionRemarks(c.bundle);
+      final byHand = r.remarks.trim().isNotEmpty;
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          FormSection(
+            title: 'Blanks of the paragraph',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                checked,
+                const Text(
+                  'Other blanks come from earlier steps: header (memo, dates), '
+                  'A (application, SCO, CT ratio) and the new connection details '
+                  '(store challan, number of meters and CTs).',
+                  style: TextStyle(color: AppColors.muted, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          FormSection(
+            title: byHand
+                ? 'Paragraph (edited by hand)'
+                : 'Paragraph as it will print',
+            action: TextButton(
+              onPressed: () async {
+                if (byHand) {
+                  final ok = await confirm(
+                    context,
+                    'Use the standard paragraph?',
+                    'Your hand-edited text will be replaced by the printed paragraph with its blanks filled.',
+                  );
+                  if (ok) _set((r) => r.copyWith(remarks: ''));
+                } else {
+                  _set((r) => r.copyWith(remarks: auto));
+                }
+              },
+              child: Text(byHand ? 'Use standard' : 'Edit by hand'),
+            ),
+            child: byHand
+                ? AppField(
+                    label: 'Paragraph',
+                    value: r.remarks,
+                    maxLines: 14,
+                    onChanged: (v) {
+                      c.bundle.report = c.bundle.report.copyWith(remarks: v);
+                      c.changed();
+                    },
+                  )
+                : Text(auto, style: const TextStyle(fontSize: 15, height: 1.5)),
+          ),
+        ],
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        ResponsiveFields(
-          children: [
-            AppField(
-              label: 'MSB status',
-              value: r.msbStatus,
-              hint: 'e.g. Welded',
-              onChanged: (v) => _setReport(c, (r) => r.copyWith(msbStatus: v)),
-            ),
-            AppField(
-              label: 'Postal orders',
-              value: r.postalOrdersText,
-              onChanged: (v) =>
-                  _setReport(c, (r) => r.copyWith(postalOrdersText: v)),
-            ),
-            AppField(
-              key: ValueKey('checked-${r.checkedLoadKw}'),
-              label: 'Checked load (KW)',
-              value: r.checkedLoadKw,
-              numeric: true,
-              helper: computed == null
-                  ? null
-                  : 'From section C: ${fmtNum(computed)}',
-              onChanged: (v) =>
-                  _setReport(c, (r) => r.copyWith(checkedLoadKw: v)),
-            ),
-            AppField(
-              label: 'Export load',
-              value: r.exportLoadText,
-              onChanged: (v) =>
-                  _setReport(c, (r) => r.copyWith(exportLoadText: v)),
-            ),
-            AppField(
-              label: 'Accuracy',
-              value: r.accuracyText,
-              hint: 'e.g. OK',
-              onChanged: (v) =>
-                  _setReport(c, (r) => r.copyWith(accuracyText: v)),
-            ),
-            AppField(
-              label: 'Transformer LT bushes',
-              value: r.transformerLtBushes,
-              hint: 'e.g. Sealed',
-              onChanged: (v) =>
-                  _setReport(c, (r) => r.copyWith(transformerLtBushes: v)),
-            ),
-          ],
-        ),
-        if (computed != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: () => setState(
-                () => _setReport(
-                  c,
-                  (r) => r.copyWith(checkedLoadKw: fmtNum(computed)),
-                ),
+        FormSection(
+          letter: 'E',
+          title: 'Any discrepancy if observed',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InfoTable([
+                ('A/C No.', c.bundle.sectionA['account_no'] ?? ''),
+                ('Name', c.bundle.sectionA['name'] ?? ''),
+                ('Site visited on', fmtDate(r.visitDate)),
+              ]),
+              const SizedBox(height: 8),
+              AppField(
+                label: 'MSB Status',
+                value: r.msbStatus,
+                suggestions: const ['Welded', 'Sealed', 'Locked'],
+                onChanged: (v) => _set((r) => r.copyWith(msbStatus: v)),
               ),
-              child: Text('Use computed check load ${fmtNum(computed)} KW'),
-            ),
+              AppField(
+                label: 'Postal orders',
+                value: r.postalOrdersText,
+                suggestions: const ['Affixed', 'Not affixed', '-'],
+                onChanged: (v) => _set((r) => r.copyWith(postalOrdersText: v)),
+              ),
+              checked,
+              AppField(
+                label: '(Export Load) =',
+                value: r.exportLoadText,
+                suggestions: const ['-', 'Nil'],
+                onChanged: (v) => _set((r) => r.copyWith(exportLoadText: v)),
+              ),
+              AppField(
+                label: 'Accuracy',
+                value: r.accuracyText,
+                suggestions: const ['OK', 'Not OK', 'Slow', 'Fast'],
+                onChanged: (v) => _set((r) => r.copyWith(accuracyText: v)),
+              ),
+              AppField(
+                label: 'Transformer LT Bushes',
+                value: r.transformerLtBushes,
+                suggestions: const ['Sealed', 'Not sealed'],
+                onChanged: (v) =>
+                    _set((r) => r.copyWith(transformerLtBushes: v)),
+              ),
+            ],
           ),
-        SectionTitle(
-          isNew
-              ? 'Remarks paragraph'
-              : 'Discrepancy / remarks / recommendations',
         ),
-        AppField(
-          key: ValueKey('remarks-${r.remarks.hashCode}-${r.checkedLoadKw}'),
-          label: 'Remarks',
-          value: r.remarks,
-          maxLines: 12,
-          onChanged: (v) {
-            c.bundle.report = c.bundle.report.copyWith(remarks: v);
-            c.changed();
-          },
-        ),
-        if (isNew)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () async {
-                final ok = await confirm(
-                  context,
-                  'Refill paragraph?',
-                  'Replace the paragraph with the template filled from this report?',
-                );
-                if (!ok) return;
-                setState(
-                  () => _setReport(
-                    c,
-                    (r) => r.copyWith(remarks: newConnectionRemarks(c.bundle)),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Fill from template'),
-            ),
+        FormSection(
+          title: 'Remarks and recommendations',
+          child: AppField(
+            label: 'Written on the ruled lines',
+            value: r.remarks,
+            maxLines: 8,
+            helper: 'Leave empty if none: the lines are struck through on the printout.',
+            onChanged: (v) {
+              c.bundle.report = c.bundle.report.copyWith(remarks: v);
+              c.changed();
+            },
           ),
+        ),
       ],
     );
   }
@@ -630,37 +662,88 @@ class SectionFStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = c.bundle.report;
+    final a = c.bundle.sectionA;
+    final circle = c.settings['circle'] ?? '';
+    final div = a['op_division'] ?? '';
+    final sdiv = r.toSubDivision.isEmpty
+        ? (a['sub_division'] ?? '')
+        : r.toSubDivision;
+    Widget fixed(String no, String name, String post) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 24,
+            child: Text(
+              no,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(post, style: const TextStyle(color: AppColors.muted)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         FormSection(
-          title: 'Postal orders signed by',
+          letter: 'F',
+          title: 'Postal orders signed by (MCO / new installation)',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              fixed(
+                '1',
+                c.settings['xen_mt'] ?? '',
+                'Executive Engineer M&T MEPCO Circle $circle',
+              ),
+              const Divider(),
+              fixed(
+                '2',
+                'Engr. (name below)',
+                'Executive Engineer (OP) MEPCO Div. $div',
+              ),
               AppField(
-                label: '1. EXEN (OP)',
+                label: 'Engr.',
                 value: r.signerExenOp,
-                hint: 'e.g. Engr. Name (EXEN OP CTN)',
                 onChanged: (v) =>
                     _setReport(c, (r) => r.copyWith(signerExenOp: v)),
               ),
+              fixed(
+                '3',
+                'Engr. (name below)',
+                'Sub Divisional Officer (OP) S/Div. $sdiv',
+              ),
               AppField(
-                label: '2. SDO (OP)',
+                label: 'Engr.',
                 value: r.signerSdoOp,
-                hint: 'e.g. Engr. Name (SDO OP S/Town)',
                 onChanged: (v) =>
                     _setReport(c, (r) => r.copyWith(signerSdoOp: v)),
               ),
-              AppField(
-                label: '3.',
-                value: r.signer3,
-                onChanged: (v) => _setReport(c, (r) => r.copyWith(signer3: v)),
+              const Divider(),
+              fixed(
+                '4',
+                'Work of installation is supervised by ${c.settings['test_inspector'] ?? ''}',
+                'Test Inspector M&T Circle $circle',
               ),
-              AppField(
-                label: '4.',
-                value: r.signer4,
-                onChanged: (v) => _setReport(c, (r) => r.copyWith(signer4: v)),
+              const Text(
+                'Leave 2 and 3 empty when postal orders were not signed: rows 1-3 are struck through on the printout.',
+                style: TextStyle(color: AppColors.muted, fontSize: 13),
               ),
             ],
           ),
@@ -812,4 +895,28 @@ class ReviewStep extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The three meter groups of the seal grid, with the headings of the form.
+List<(String, String)> sealGroups(ReportBundle b) {
+  final t = b.template;
+  if (t.isNet) {
+    return const [
+      ('Removed Meter', ColumnRole.removed),
+      ('Billing Meter', ColumnRole.billing),
+      ('Backup Meter', ColumnRole.backup),
+    ];
+  }
+  if (t.isNewConnection) {
+    return const [
+      ('Removed Meter', ColumnRole.removed),
+      ('AMR Meter', ColumnRole.amr),
+      ('Existing Meter', ColumnRole.existing),
+    ];
+  }
+  return const [
+    ('Removed Meter', ColumnRole.removed),
+    ('Billing Meter (AMR)', ColumnRole.amr),
+    ('Backup Meter (Existing)', ColumnRole.existing),
+  ];
 }
