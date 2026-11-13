@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: build-${{ github.ref }}
@@ -98,11 +99,11 @@ jobs:
           while read -r tag; do
             if [ "$tag" != "$KEEP" ]; then
               echo "Deleting release $tag"
-              gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag
+              gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag || echo "Could not delete $tag"
             fi
           done
           gh api "repos/$REPO/actions/artifacts" --paginate --jq '.artifacts[].id' |
           while read -r id; do
             echo "Deleting artifact $id"
-            gh api -X DELETE "repos/$REPO/actions/artifacts/$id"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" || echo "Could not delete artifact $id"
           done
