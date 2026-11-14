@@ -96,6 +96,14 @@ void main() {
       r['kvarh_off'] = '1546.53';
       applyAutoTotals(amrTestCheckTemplate, r, 'kvarh_off');
       expect(r['kvarh_total'], '1937.75');
+      r['mdi_peak'] = '1.99';
+      r['mdi_off'] = '2.00';
+      applyAutoTotals(amrTestCheckTemplate, r, 'mdi_off');
+      expect(r['mdi_total'], '3.99');
+      r['cum_mdi_peak'] = '18.15';
+      r['cum_mdi_off'] = '12.42';
+      applyAutoTotals(amrTestCheckTemplate, r, 'cum_mdi_peak');
+      expect(r['cum_mdi_total'], '30.57');
     });
 
     test('net meter T-1 + T-2 fill the total', () {

@@ -28,4 +28,22 @@ void main() {
       'TFORMER': 'TA-900009-10-11-12',
     });
   });
+
+  test('first-last style: TA-823625-27', () {
+    final s = Serial.parse('TA-823625')!;
+    expect(formatSerialRange(s, 3, firstLast: true), 'TA-823625-27');
+    expect(formatSerialRange(s, 1, firstLast: true), 'TA-823625');
+    expect(fillSerials('TA-823621', {'TOU_MC': 1, 'MSB': 3}, firstLast: true), {
+      'TOU_MC': 'TA-823621',
+      'MSB': 'TA-823622-24',
+    });
+  });
+
+  test('count of serials in a range', () {
+    expect(serialCount('TA-823625-27'), 3);
+    expect(serialCount('TA-823629-30-31-32'), 4);
+    expect(serialCount('TA-823621'), 1);
+    expect(serialCount('TA-823698-01'), 4);
+    expect(serialCount(''), 0);
+  });
 }

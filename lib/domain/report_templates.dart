@@ -117,6 +117,8 @@ const _amrParams = [
 const _amrTotals = [
   TotalRule('kwh_total', 'kwh_peak', 'kwh_off'),
   TotalRule('kvarh_total', 'kvarh_peak', 'kvarh_off'),
+  TotalRule('mdi_total', 'mdi_peak', 'mdi_off'),
+  TotalRule('cum_mdi_total', 'cum_mdi_peak', 'cum_mdi_off'),
 ];
 
 const _amrRegisters = [

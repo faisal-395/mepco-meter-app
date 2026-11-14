@@ -277,6 +277,7 @@ class SectionDStep extends StatelessWidget {
     if (cols.isEmpty) return;
     var role = cols.first.$2;
     var postal = true;
+    var firstLast = false;
     var first = '';
     final counts = {
       'TOU_MC': 1,
@@ -315,6 +316,19 @@ class SectionDStep extends StatelessWidget {
                   value: postal,
                   onChanged: (v) => setD(() => postal = v),
                 ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 4, bottom: 4),
+                  child: Text('Write ranges as:'),
+                ),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('TA-823625-26-27')),
+                    ButtonSegment(value: true, label: Text('TA-823625-27')),
+                  ],
+                  selected: {firstLast},
+                  onSelectionChanged: (v) => setD(() => firstLast = v.first),
+                ),
+                const SizedBox(height: 8),
                 const Text('How many serials for each spot (0 = skip):'),
                 for (final s in sealSpots)
                   Row(
@@ -350,6 +364,7 @@ class SectionDStep extends StatelessWidget {
                   fillSerials(
                     first,
                     counts,
+                    firstLast: firstLast,
                   ).entries.map((e) => '${e.key}: ${e.value}').join('\n'),
                   style: const TextStyle(color: Colors.black54),
                 ),
@@ -370,7 +385,7 @@ class SectionDStep extends StatelessWidget {
       ),
     );
     if (ok != true) return;
-    final filled = fillSerials(first, counts);
+    final filled = fillSerials(first, counts, firstLast: firstLast);
     if (filled.isEmpty) {
       if (context.mounted) {
         showSnack(context, 'The serial must end with digits.');
