@@ -442,71 +442,93 @@ class SectionDStep extends StatelessWidget {
         for (final col in cols)
           FormSection(
             title: col.$1,
-            child: Table(
-              border: TableBorder.all(color: AppColors.line),
-              columnWidths: const {0: FixedColumnWidth(92)},
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TableRow(
-                  decoration: const BoxDecoration(color: AppColors.navyLight),
-                  children: [
-                    for (final h in ['Seal at', 'M&T Seal', 'Postal Order'])
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 6,
-                        ),
-                        child: Text(
-                          h,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.navy,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
                 for (final spot in sealSpots)
-                  TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          spot.label.isEmpty ? 'MSB (2)' : spot.label,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(3),
-                        child: CompactField(
-                          value: b.seal(spot.code, col.$2).mtSeal,
-                          numeric: false,
-                          textAlign: TextAlign.start,
-                          onChanged: (v) {
-                            b.seal(spot.code, col.$2).mtSeal = v;
-                            c.changed();
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(3),
-                        child: CompactField(
-                          value: b.seal(spot.code, col.$2).postalOrder,
-                          numeric: false,
-                          textAlign: TextAlign.start,
-                          onChanged: (v) {
-                            b.seal(spot.code, col.$2).postalOrder = v;
-                            c.changed();
-                          },
-                        ),
-                      ),
-                    ],
+                  _SealSpotRow(
+                    label: spot.label.isEmpty ? 'MSB (2nd row)' : spot.label,
+                    seal: b.seal(spot.code, col.$2),
+                    last: spot == sealSpots.last,
+                    onChanged: c.changed,
                   ),
               ],
             ),
           ),
       ],
+    );
+  }
+}
+
+/// One seal spot: M&T Seal and Postal Order in full-width boxes that wrap,
+/// so long numbers like "TA-823629-30-31-32" are always fully visible.
+class _SealSpotRow extends StatelessWidget {
+  const _SealSpotRow({
+    required this.label,
+    required this.seal,
+    required this.last,
+    required this.onChanged,
+  });
+  final String label;
+  final SealValues seal;
+  final bool last;
+  final VoidCallback onChanged;
+
+  String _count(String v) {
+    final n = serialCount(v);
+    return n <= 1 ? '' : '$n seals';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      decoration: BoxDecoration(
+        border: last
+            ? null
+            : const Border(bottom: BorderSide(color: AppColors.line)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AppColors.navy,
+              fontSize: 15,
+            ),
+          ),
+          ResponsiveFields(
+            children: [
+              AppField(
+                label: 'M&T Seal',
+                value: seal.mtSeal,
+                maxLines: 3,
+                helper: _count(seal.mtSeal).isEmpty
+                    ? null
+                    : _count(seal.mtSeal),
+                onChanged: (v) {
+                  seal.mtSeal = v;
+                  onChanged();
+                },
+              ),
+              AppField(
+                label: 'Postal Order',
+                value: seal.postalOrder,
+                maxLines: 3,
+                helper: _count(seal.postalOrder).isEmpty
+                    ? null
+                    : _count(seal.postalOrder),
+                onChanged: (v) {
+                  seal.postalOrder = v;
+                  onChanged();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

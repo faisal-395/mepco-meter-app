@@ -231,22 +231,20 @@ String splitInTwo(String text) {
   return '$first\n$second';
 }
 
-/// Rough width of [text] in Times at [size] (digits are half an em wide).
+// Real Times metrics, measured on a scratch document (never saved).
+final _metricsDoc = PdfDocument();
+final _timesMetrics = PdfFont.times(_metricsDoc);
+final _timesBoldMetrics = PdfFont.timesBold(_metricsDoc);
+
+/// Width of [text] in Times at [size], from the font's own metrics
+/// (plus a small safety margin).
 double estimateWidth(String text, double size, {bool bold = false}) {
-  var em = 0.0;
-  for (final ch in text.runes) {
-    final c = String.fromCharCode(ch);
-    if (RegExp(r'[0-9]').hasMatch(c)) {
-      em += 0.5;
-    } else if (RegExp(r'[A-Z]').hasMatch(c)) {
-      em += 0.70;
-    } else if (c == ' ' || c == '-' || c == '.' || c == '/') {
-      em += 0.30;
-    } else {
-      em += 0.48;
-    }
+  final font = bold ? _timesBoldMetrics : _timesMetrics;
+  try {
+    return font.stringMetrics(text).advanceWidth * size * 1.04;
+  } catch (_) {
+    return text.length * size * 0.6;
   }
-  return em * size * (bold ? 1.05 : 1.0);
 }
 
 /// Scales proportional column widths to fill [width].

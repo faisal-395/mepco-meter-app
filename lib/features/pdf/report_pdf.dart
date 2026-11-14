@@ -923,7 +923,7 @@ class _Form {
     SealValues? seal(String spot, String role) => b.seals[sealKey(spot, role)];
     bool hasSeals(String role) =>
         sealSpots.any((sp) => !(seal(sp.code, role)?.isEmpty ?? true));
-    final widths = fit([56, 40, 62, 52, 40, 76, 40, 76], _w - 2 * thick);
+    final widths = fit([50, 54, 62, 36, 62, 78, 62, 78], _w - 2 * thick);
     GCell h(String s, {int span = 1}) =>
         GCell(s, span: span, bold: true, align: Al.center, size: 7.6);
     GCell v(String s) => GCell(s, align: Al.center, size: 9);

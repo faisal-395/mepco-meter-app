@@ -113,6 +113,15 @@ void main() {
         await shot(e.value);
       }
       router.pop();
+      await settle(tester);
+      router.push('/reports/${ids[2]}');
+      await settle(tester);
+      for (var i = 0; i < 5; i++) {
+        await tester.tap(find.text('Next'));
+        await settle(tester);
+      }
+      await shot('12_seals_new_connection');
+      router.pop();
       router.push('/settings');
       await shot('10_settings');
       await tester.drag(find.byType(Scrollable).last, const Offset(0, -6000));

@@ -23,6 +23,7 @@ void main() {
     final b = (await dao.loadBundle(ids[2]))!;
     b.seal('TFORMER', 'amr').postalOrder = 'TA-823629-30-31-32-33-34-35-36';
     b.seal('MSB', 'amr').mtSeal = 'MT-1234567-68-69';
+    b.seal('TOU_MC', 'amr').mtSeal = 'MT-1234570-71-72-73';
     await dao.saveBundle(b);
     final bytes = await buildReportPdf(b, SettingKeys.defaults);
     expect(bytes.length, greaterThan(1000));
