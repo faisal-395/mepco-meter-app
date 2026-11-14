@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +57,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await m.addColumn(consumers, consumers.ctVaBurden);
         await m.addColumn(reports, reports.loadType);
+      }
+      if (from < 3) {
+        await m.addColumn(consumers, consumers.sanctionDate);
       }
     },
     beforeOpen: (details) async {

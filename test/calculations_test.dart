@@ -76,6 +76,35 @@ void main() {
     });
   });
 
+  group('auto totals', () {
+    test('sum keeps the typed decimals', () {
+      expect(sumText('508.62', '2048.11'), '2556.73');
+      expect(sumText('0.00', '0.4'), '0.40');
+      expect(sumText('73.8', '706.4'), '780.2');
+      expect(sumText('', '1'), isNull);
+    });
+
+    test('peak + off peak fill the total', () {
+      final r = <String, String>{'kwh_peak': '508.62'};
+      expect(applyAutoTotals(amrTestCheckTemplate, r, 'kwh_peak'), isEmpty);
+      r['kwh_off'] = '2048.11';
+      expect(applyAutoTotals(amrTestCheckTemplate, r, 'kwh_off'), [
+        'kwh_total',
+      ]);
+      expect(r['kwh_total'], '2556.73');
+      r['kvarh_peak'] = '391.22';
+      r['kvarh_off'] = '1546.53';
+      applyAutoTotals(amrTestCheckTemplate, r, 'kvarh_off');
+      expect(r['kvarh_total'], '1937.75');
+    });
+
+    test('net meter T-1 + T-2 fill the total', () {
+      final r = {'imp_kwh_t1': '73.8', 'imp_kwh_t2': '706.4'};
+      applyAutoTotals(netMeterTemplate, r, 'imp_kwh_t2');
+      expect(r['imp_kwh_total'], '780.2');
+    });
+  });
+
   group('templates', () {
     test('AMR has 18 rows, NET has 30 numbered rows', () {
       expect(amrTestCheckTemplate.params, hasLength(18));

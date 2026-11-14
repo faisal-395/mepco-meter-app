@@ -20,6 +20,9 @@ concurrency:
 
 jobs:
   build:
+    # Build only when asked: a commit message containing [build], or the
+    # "Run workflow" button on GitHub. Ordinary pushes cost no build minutes.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build]')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

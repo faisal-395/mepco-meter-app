@@ -165,3 +165,21 @@ List<ReportWarning> validateReport(
   }
   return out;
 }
+
+/// After [changedCode] was typed: fills every total whose parts it belongs to
+/// (Total = Peak + Off Peak, or T-1 + T-2). Returns the codes it filled.
+List<String> applyAutoTotals(
+  ReportTemplate t,
+  Map<String, String> readings,
+  String changedCode,
+) {
+  final filled = <String>[];
+  for (final rule in t.totals) {
+    if (rule.partA != changedCode && rule.partB != changedCode) continue;
+    final sum = sumText(readings[rule.partA], readings[rule.partB]);
+    if (sum == null) continue;
+    readings[rule.total] = sum;
+    filled.add(rule.total);
+  }
+  return filled;
+}

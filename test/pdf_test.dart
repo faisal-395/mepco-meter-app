@@ -18,6 +18,18 @@ void main() {
   });
   tearDown(() => db.close());
 
+  test('long seal ranges fit in the PDF', () async {
+    final dao = ReportsDao(db);
+    final b = (await dao.loadBundle(ids[2]))!;
+    b.seal('TFORMER', 'amr').postalOrder = 'TA-823629-30-31-32-33-34-35-36';
+    b.seal('MSB', 'amr').mtSeal = 'MT-1234567-68-69';
+    await dao.saveBundle(b);
+    final bytes = await buildReportPdf(b, SettingKeys.defaults);
+    expect(bytes.length, greaterThan(1000));
+    final out = Directory('build/test_pdfs')..createSync(recursive: true);
+    File('${out.path}/long_ranges.pdf').writeAsBytesSync(bytes);
+  });
+
   for (final (i, name) in [
     (0, 'AMR_TEST_CHECK'),
     (1, 'NET_METER'),

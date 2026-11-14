@@ -9,7 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as s3;
 
 void main() {
-  test('a schema v1 database is upgraded to v2 without losing data', () async {
+  test('a schema v1 database is upgraded to the current version without losing data', () async {
     final dir = Directory.systemTemp.createTempSync('mepco_migration');
     addTearDown(() => dir.deleteSync(recursive: true));
     final file = File(p.join(dir.path, 'db.sqlite'));
@@ -21,6 +21,7 @@ void main() {
     final raw = s3.sqlite3.open(file.path);
     raw.execute('ALTER TABLE consumers DROP COLUMN ct_va_burden');
     raw.execute('ALTER TABLE reports DROP COLUMN load_type');
+    raw.execute('ALTER TABLE consumers DROP COLUMN sanction_date');
     raw.execute('PRAGMA user_version = 1');
     raw.close();
 

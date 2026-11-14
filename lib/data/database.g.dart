@@ -280,6 +280,17 @@ class $ConsumersTable extends Consumers
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _sanctionDateMeta = const VerificationMeta(
+    'sanctionDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> sanctionDate = GeneratedColumn<DateTime>(
+    'sanction_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _scoMcoRcoNoMeta = const VerificationMeta(
     'scoMcoRcoNo',
   );
@@ -362,6 +373,7 @@ class $ConsumersTable extends Consumers
     applicationNo,
     applicationDate,
     sanctionRef,
+    sanctionDate,
     scoMcoRcoNo,
     scoDate,
     notes,
@@ -550,6 +562,15 @@ class $ConsumersTable extends Consumers
         ),
       );
     }
+    if (data.containsKey('sanction_date')) {
+      context.handle(
+        _sanctionDateMeta,
+        sanctionDate.isAcceptableOrUnknown(
+          data['sanction_date']!,
+          _sanctionDateMeta,
+        ),
+      );
+    }
     if (data.containsKey('sco_mco_rco_no')) {
       context.handle(
         _scoMcoRcoNoMeta,
@@ -684,6 +705,10 @@ class $ConsumersTable extends Consumers
         DriftSqlType.string,
         data['${effectivePrefix}sanction_ref'],
       )!,
+      sanctionDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}sanction_date'],
+      ),
       scoMcoRcoNo: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sco_mco_rco_no'],
@@ -739,6 +764,9 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
   final String applicationNo;
   final DateTime? applicationDate;
   final String sanctionRef;
+
+  /// Added in schema v3: date of the SE/XEN sanction (cell 3).
+  final DateTime? sanctionDate;
   final String scoMcoRcoNo;
   final DateTime? scoDate;
   final String notes;
@@ -768,6 +796,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
     required this.applicationNo,
     this.applicationDate,
     required this.sanctionRef,
+    this.sanctionDate,
     required this.scoMcoRcoNo,
     this.scoDate,
     required this.notes,
@@ -802,6 +831,9 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
       map['application_date'] = Variable<DateTime>(applicationDate);
     }
     map['sanction_ref'] = Variable<String>(sanctionRef);
+    if (!nullToAbsent || sanctionDate != null) {
+      map['sanction_date'] = Variable<DateTime>(sanctionDate);
+    }
     map['sco_mco_rco_no'] = Variable<String>(scoMcoRcoNo);
     if (!nullToAbsent || scoDate != null) {
       map['sco_date'] = Variable<DateTime>(scoDate);
@@ -839,6 +871,9 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
           ? const Value.absent()
           : Value(applicationDate),
       sanctionRef: Value(sanctionRef),
+      sanctionDate: sanctionDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sanctionDate),
       scoMcoRcoNo: Value(scoMcoRcoNo),
       scoDate: scoDate == null && nullToAbsent
           ? const Value.absent()
@@ -878,6 +913,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
       applicationNo: serializer.fromJson<String>(json['applicationNo']),
       applicationDate: serializer.fromJson<DateTime?>(json['applicationDate']),
       sanctionRef: serializer.fromJson<String>(json['sanctionRef']),
+      sanctionDate: serializer.fromJson<DateTime?>(json['sanctionDate']),
       scoMcoRcoNo: serializer.fromJson<String>(json['scoMcoRcoNo']),
       scoDate: serializer.fromJson<DateTime?>(json['scoDate']),
       notes: serializer.fromJson<String>(json['notes']),
@@ -912,6 +948,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
       'applicationNo': serializer.toJson<String>(applicationNo),
       'applicationDate': serializer.toJson<DateTime?>(applicationDate),
       'sanctionRef': serializer.toJson<String>(sanctionRef),
+      'sanctionDate': serializer.toJson<DateTime?>(sanctionDate),
       'scoMcoRcoNo': serializer.toJson<String>(scoMcoRcoNo),
       'scoDate': serializer.toJson<DateTime?>(scoDate),
       'notes': serializer.toJson<String>(notes),
@@ -944,6 +981,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
     String? applicationNo,
     Value<DateTime?> applicationDate = const Value.absent(),
     String? sanctionRef,
+    Value<DateTime?> sanctionDate = const Value.absent(),
     String? scoMcoRcoNo,
     Value<DateTime?> scoDate = const Value.absent(),
     String? notes,
@@ -975,6 +1013,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
         ? applicationDate.value
         : this.applicationDate,
     sanctionRef: sanctionRef ?? this.sanctionRef,
+    sanctionDate: sanctionDate.present ? sanctionDate.value : this.sanctionDate,
     scoMcoRcoNo: scoMcoRcoNo ?? this.scoMcoRcoNo,
     scoDate: scoDate.present ? scoDate.value : this.scoDate,
     notes: notes ?? this.notes,
@@ -1034,6 +1073,9 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
       sanctionRef: data.sanctionRef.present
           ? data.sanctionRef.value
           : this.sanctionRef,
+      sanctionDate: data.sanctionDate.present
+          ? data.sanctionDate.value
+          : this.sanctionDate,
       scoMcoRcoNo: data.scoMcoRcoNo.present
           ? data.scoMcoRcoNo.value
           : this.scoMcoRcoNo,
@@ -1070,6 +1112,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
           ..write('applicationNo: $applicationNo, ')
           ..write('applicationDate: $applicationDate, ')
           ..write('sanctionRef: $sanctionRef, ')
+          ..write('sanctionDate: $sanctionDate, ')
           ..write('scoMcoRcoNo: $scoMcoRcoNo, ')
           ..write('scoDate: $scoDate, ')
           ..write('notes: $notes, ')
@@ -1104,6 +1147,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
     applicationNo,
     applicationDate,
     sanctionRef,
+    sanctionDate,
     scoMcoRcoNo,
     scoDate,
     notes,
@@ -1137,6 +1181,7 @@ class ConsumerRow extends DataClass implements Insertable<ConsumerRow> {
           other.applicationNo == this.applicationNo &&
           other.applicationDate == this.applicationDate &&
           other.sanctionRef == this.sanctionRef &&
+          other.sanctionDate == this.sanctionDate &&
           other.scoMcoRcoNo == this.scoMcoRcoNo &&
           other.scoDate == this.scoDate &&
           other.notes == this.notes &&
@@ -1168,6 +1213,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
   final Value<String> applicationNo;
   final Value<DateTime?> applicationDate;
   final Value<String> sanctionRef;
+  final Value<DateTime?> sanctionDate;
   final Value<String> scoMcoRcoNo;
   final Value<DateTime?> scoDate;
   final Value<String> notes;
@@ -1197,6 +1243,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     this.applicationNo = const Value.absent(),
     this.applicationDate = const Value.absent(),
     this.sanctionRef = const Value.absent(),
+    this.sanctionDate = const Value.absent(),
     this.scoMcoRcoNo = const Value.absent(),
     this.scoDate = const Value.absent(),
     this.notes = const Value.absent(),
@@ -1227,6 +1274,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     this.applicationNo = const Value.absent(),
     this.applicationDate = const Value.absent(),
     this.sanctionRef = const Value.absent(),
+    this.sanctionDate = const Value.absent(),
     this.scoMcoRcoNo = const Value.absent(),
     this.scoDate = const Value.absent(),
     this.notes = const Value.absent(),
@@ -1257,6 +1305,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     Expression<String>? applicationNo,
     Expression<DateTime>? applicationDate,
     Expression<String>? sanctionRef,
+    Expression<DateTime>? sanctionDate,
     Expression<String>? scoMcoRcoNo,
     Expression<DateTime>? scoDate,
     Expression<String>? notes,
@@ -1287,6 +1336,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
       if (applicationNo != null) 'application_no': applicationNo,
       if (applicationDate != null) 'application_date': applicationDate,
       if (sanctionRef != null) 'sanction_ref': sanctionRef,
+      if (sanctionDate != null) 'sanction_date': sanctionDate,
       if (scoMcoRcoNo != null) 'sco_mco_rco_no': scoMcoRcoNo,
       if (scoDate != null) 'sco_date': scoDate,
       if (notes != null) 'notes': notes,
@@ -1319,6 +1369,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     Value<String>? applicationNo,
     Value<DateTime?>? applicationDate,
     Value<String>? sanctionRef,
+    Value<DateTime?>? sanctionDate,
     Value<String>? scoMcoRcoNo,
     Value<DateTime?>? scoDate,
     Value<String>? notes,
@@ -1349,6 +1400,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
       applicationNo: applicationNo ?? this.applicationNo,
       applicationDate: applicationDate ?? this.applicationDate,
       sanctionRef: sanctionRef ?? this.sanctionRef,
+      sanctionDate: sanctionDate ?? this.sanctionDate,
       scoMcoRcoNo: scoMcoRcoNo ?? this.scoMcoRcoNo,
       scoDate: scoDate ?? this.scoDate,
       notes: notes ?? this.notes,
@@ -1429,6 +1481,9 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
     if (sanctionRef.present) {
       map['sanction_ref'] = Variable<String>(sanctionRef.value);
     }
+    if (sanctionDate.present) {
+      map['sanction_date'] = Variable<DateTime>(sanctionDate.value);
+    }
     if (scoMcoRcoNo.present) {
       map['sco_mco_rco_no'] = Variable<String>(scoMcoRcoNo.value);
     }
@@ -1473,6 +1528,7 @@ class ConsumersCompanion extends UpdateCompanion<ConsumerRow> {
           ..write('applicationNo: $applicationNo, ')
           ..write('applicationDate: $applicationDate, ')
           ..write('sanctionRef: $sanctionRef, ')
+          ..write('sanctionDate: $sanctionDate, ')
           ..write('scoMcoRcoNo: $scoMcoRcoNo, ')
           ..write('scoDate: $scoDate, ')
           ..write('notes: $notes, ')
@@ -6037,6 +6093,7 @@ typedef $$ConsumersTableCreateCompanionBuilder = ConsumersCompanion Function({
   Value<String> applicationNo,
   Value<DateTime?> applicationDate,
   Value<String> sanctionRef,
+  Value<DateTime?> sanctionDate,
   Value<String> scoMcoRcoNo,
   Value<DateTime?> scoDate,
   Value<String> notes,
@@ -6067,6 +6124,7 @@ typedef $$ConsumersTableUpdateCompanionBuilder = ConsumersCompanion Function({
   Value<String> applicationNo,
   Value<DateTime?> applicationDate,
   Value<String> sanctionRef,
+  Value<DateTime?> sanctionDate,
   Value<String> scoMcoRcoNo,
   Value<DateTime?> scoDate,
   Value<String> notes,
@@ -6238,6 +6296,11 @@ class $$ConsumersTableFilterComposer
 
   ColumnFilters<String> get sanctionRef => $composableBuilder(
     column: $table.sanctionRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get sanctionDate => $composableBuilder(
+    column: $table.sanctionDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6441,6 +6504,11 @@ class $$ConsumersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get sanctionDate => $composableBuilder(
+    column: $table.sanctionDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get scoMcoRcoNo => $composableBuilder(
     column: $table.scoMcoRcoNo,
     builder: (column) => ColumnOrderings(column),
@@ -6573,6 +6641,11 @@ class $$ConsumersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<DateTime> get sanctionDate => $composableBuilder(
+    column: $table.sanctionDate,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get scoMcoRcoNo => $composableBuilder(
     column: $table.scoMcoRcoNo,
     builder: (column) => column,
@@ -6692,6 +6765,7 @@ class $$ConsumersTableTableManager
                 Value<String> applicationNo = const Value.absent(),
                 Value<DateTime?> applicationDate = const Value.absent(),
                 Value<String> sanctionRef = const Value.absent(),
+                Value<DateTime?> sanctionDate = const Value.absent(),
                 Value<String> scoMcoRcoNo = const Value.absent(),
                 Value<DateTime?> scoDate = const Value.absent(),
                 Value<String> notes = const Value.absent(),
@@ -6721,6 +6795,7 @@ class $$ConsumersTableTableManager
                 applicationNo: applicationNo,
                 applicationDate: applicationDate,
                 sanctionRef: sanctionRef,
+                sanctionDate: sanctionDate,
                 scoMcoRcoNo: scoMcoRcoNo,
                 scoDate: scoDate,
                 notes: notes,
@@ -6752,6 +6827,7 @@ class $$ConsumersTableTableManager
                 Value<String> applicationNo = const Value.absent(),
                 Value<DateTime?> applicationDate = const Value.absent(),
                 Value<String> sanctionRef = const Value.absent(),
+                Value<DateTime?> sanctionDate = const Value.absent(),
                 Value<String> scoMcoRcoNo = const Value.absent(),
                 Value<DateTime?> scoDate = const Value.absent(),
                 Value<String> notes = const Value.absent(),
@@ -6781,6 +6857,7 @@ class $$ConsumersTableTableManager
                 applicationNo: applicationNo,
                 applicationDate: applicationDate,
                 sanctionRef: sanctionRef,
+                sanctionDate: sanctionDate,
                 scoMcoRcoNo: scoMcoRcoNo,
                 scoDate: scoDate,
                 notes: notes,

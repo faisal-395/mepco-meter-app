@@ -28,6 +28,9 @@ class Consumers extends Table {
   TextColumn get applicationNo => text().withDefault(const Constant(''))();
   DateTimeColumn get applicationDate => dateTime().nullable()();
   TextColumn get sanctionRef => text().withDefault(const Constant(''))();
+
+  /// Added in schema v3: date of the SE/XEN sanction (cell 3).
+  DateTimeColumn get sanctionDate => dateTime().nullable()();
   TextColumn get scoMcoRcoNo => text().withDefault(const Constant(''))();
   DateTimeColumn get scoDate => dateTime().nullable()();
   TextColumn get notes => text().withDefault(const Constant(''))();

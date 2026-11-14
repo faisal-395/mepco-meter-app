@@ -312,7 +312,7 @@ class ReadingCell extends StatelessWidget {
                     const Icon(Icons.check_circle, color: okColor, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      '= ${fmtNum(chk.sum)}',
+                      '= ${t.isNet ? 'T-1 + T-2' : 'Peak + Off Peak'} (auto)',
                       style: const TextStyle(color: okColor, fontSize: 13),
                     ),
                   ],
@@ -383,6 +383,8 @@ class ReadingCell extends StatelessWidget {
       kind: p.kind,
       onChanged: (v) {
         slot.readings[p.code] = v;
+        // Peak + Off Peak (or T-1 + T-2) fill their total automatically.
+        applyAutoTotals(t, slot.readings, p.code);
         c.changed();
       },
     );

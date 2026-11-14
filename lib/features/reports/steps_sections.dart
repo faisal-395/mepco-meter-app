@@ -175,6 +175,9 @@ class _LoadTable extends StatelessWidget {
       ),
     );
     Widget pad(Widget w) => Padding(padding: const EdgeInsets.all(3), child: w);
+    final average = c.settings['check_load_method'] != 'sum_per_phase';
+    final sum = sc.sideTotal(side);
+    final load = side == 'import' ? sc.importCheckLoad : sc.exportCheckLoad;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -240,19 +243,18 @@ class _LoadTable extends StatelessWidget {
               children: [
                 head('Total'),
                 const SizedBox(),
+                head(sum == null ? '' : '${fmtNum(sum)} ÷ ${average ? 3 : 1}'),
                 const SizedBox(),
-                const SizedBox(),
-                head(
-                  sc.sideTotal(side) == null ? '' : fmtNum(sc.sideTotal(side)),
-                ),
+                head(load == null ? '' : fmtNum(load)),
               ],
             ),
           ],
         ),
-        const Padding(
-          padding: EdgeInsets.only(top: 6),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
           child: Text(
-            'K.W = √3 × V × A × P.F ÷ 1000 (grey). Type in K.W to override.',
+            'K.W = √3 × V × A × P.F ÷ 1000 (grey). Type in K.W to override.\n'
+            'Total = ${average ? '(R + Y + B) ÷ 3' : 'R + Y + B'}.',
             style: TextStyle(fontSize: 12, color: AppColors.muted),
           ),
         ),

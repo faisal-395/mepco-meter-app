@@ -137,18 +137,7 @@ pw.Widget formGrid({
               : pw.BorderSide(width: row.bottom),
         ),
       ),
-      child:
-          c.widget ??
-          pw.Text(
-            clean(c.text),
-            maxLines: row.height > 18 ? 2 : 1,
-            textAlign: switch (c.align) {
-              Al.center => pw.TextAlign.center,
-              Al.right => pw.TextAlign.right,
-              Al.left => pw.TextAlign.left,
-            },
-            style: ts(c.size, b: c.bold, font: c.font),
-          ),
+      child: c.widget ?? _fittedText(c, w - 5 - c.indent, row.height),
     );
   }
 
@@ -184,6 +173,80 @@ pw.Widget formGrid({
       ],
     ),
   );
+}
+
+/// Text of a cell that never gets cut off: long values (seal ranges such as
+/// "TA-823629-30-31-32") are set smaller, or on two lines when the row is
+/// tall enough.
+pw.Widget _fittedText(GCell c, double avail, double height) {
+  var text = clean(c.text);
+  final est = estimateWidth(text, c.size, bold: c.bold);
+  var size = c.size;
+  var lines = height > 18 ? 2 : 1;
+  if (est > avail && avail > 0) {
+    final fit = avail / est;
+    final twoLineSize = height / 2.2;
+    if (fit >= 0.75 || twoLineSize < 5.5) {
+      size = c.size * (fit < 0.45 ? 0.45 : fit);
+    } else {
+      // Split at a space or dash near the middle and use two lines.
+      text = splitInTwo(text);
+      lines = 2;
+      final half = text
+          .split('\n')
+          .map((l) => estimateWidth(l, 1, bold: c.bold));
+      final widest = half.reduce((x, y) => x > y ? x : y);
+      size = [
+        c.size,
+        twoLineSize,
+        avail / widest,
+      ].reduce((x, y) => x < y ? x : y);
+    }
+  }
+  return pw.Text(
+    text,
+    maxLines: lines,
+    textAlign: switch (c.align) {
+      Al.center => pw.TextAlign.center,
+      Al.right => pw.TextAlign.right,
+      Al.left => pw.TextAlign.left,
+    },
+    style: ts(size, b: c.bold, font: c.font).copyWith(lineSpacing: 0),
+  );
+}
+
+/// "TA-823629-30-31-32" -> "TA-823629-30-\n31-32" (breaks after a dash or
+/// space closest to the middle).
+String splitInTwo(String text) {
+  final mid = text.length / 2;
+  var best = -1;
+  for (var i = 0; i < text.length - 1; i++) {
+    final ch = text[i];
+    if (ch != '-' && ch != ' ' && ch != '/' && ch != ',') continue;
+    if (best < 0 || (i - mid).abs() < (best - mid).abs()) best = i;
+  }
+  if (best < 0) best = (text.length / 2).floor() - 1;
+  final first = text.substring(0, best + 1).trimRight();
+  final second = text.substring(best + 1).trimLeft();
+  return '$first\n$second';
+}
+
+/// Rough width of [text] in Times at [size] (digits are half an em wide).
+double estimateWidth(String text, double size, {bool bold = false}) {
+  var em = 0.0;
+  for (final ch in text.runes) {
+    final c = String.fromCharCode(ch);
+    if (RegExp(r'[0-9]').hasMatch(c)) {
+      em += 0.5;
+    } else if (RegExp(r'[A-Z]').hasMatch(c)) {
+      em += 0.70;
+    } else if (c == ' ' || c == '-' || c == '.' || c == '/') {
+      em += 0.30;
+    } else {
+      em += 0.48;
+    }
+  }
+  return em * size * (bold ? 1.05 : 1.0);
 }
 
 /// Scales proportional column widths to fill [width].

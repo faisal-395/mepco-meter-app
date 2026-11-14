@@ -104,3 +104,19 @@ bool registerWentDown(String? newValue, String? oldValue) {
   if (n == null || o == null) return false;
   return n < o;
 }
+
+/// Number of decimals typed in [s] ("508.62" -> 2, "035165" -> 0).
+int decimalsOf(String s) {
+  final t = s.trim();
+  final i = t.indexOf('.');
+  return i < 0 ? 0 : t.length - i - 1;
+}
+
+/// Sum of two typed values, written with as many decimals as the parts
+/// ("508.62" + "2048.11" -> "2556.73"). Null if either is not a number.
+String? sumText(String? a, String? b) {
+  final x = parseNum(a), y = parseNum(b);
+  if (x == null || y == null) return null;
+  final d = [decimalsOf(a!), decimalsOf(b!)].reduce((p, q) => p > q ? p : q);
+  return (x + y).toStringAsFixed(d);
+}

@@ -366,7 +366,10 @@ class _Form {
         'A/C No & Tariff',
         [a('account_no'), a('tariff')].where((x) => x.isNotEmpty).join(' / '),
       ),
-      ('Sanctioned by SE/XEN No & Date', a('sanction_ref')),
+      (
+        'Sanctioned by SE/XEN No & Date',
+        nd(a('sanction_ref'), a('sanction_date')),
+      ),
       (
         'Sanction Load',
         a('sanctioned_load_kw').isEmpty ? '' : '${a('sanctioned_load_kw')} Kw',

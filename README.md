@@ -142,6 +142,7 @@ With a fixed signing key, new builds install over the old app and the data is ke
   flutter test
   flutter build apk --release
   ```
-- `.github/workflows/build-apk.yml` runs all of these on every push and publishes the APK as a
-  GitHub Release named `build-<run number>`.
+- `.github/workflows/build-apk.yml` runs all of these only when asked (a commit message
+  containing `[build]`, or **Actions → Build APK → Run workflow** on GitHub). It publishes the
+  APK as a GitHub Release named `build-<run number>` and deletes older releases.
 - The app icon is drawn by `docs/make_icon.py`.

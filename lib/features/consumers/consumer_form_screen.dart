@@ -45,6 +45,12 @@ class _SectionAEditorState extends State<SectionAEditor> {
   void _set(String code, String v) {
     final values = widget.values;
     values[code] = v;
+    // Picking a CT primary (100, 200, ...) assumes the usual /5 A secondary.
+    if (code == 'ct_primary' &&
+        v.trim().isNotEmpty &&
+        (values['ct_secondary'] ?? '').trim().isEmpty) {
+      values['ct_secondary'] = '5';
+    }
     if ((code == 'ct_primary' || code == 'ct_secondary') && !_mfManual) {
       final calc = mfFromCt(
         values['ct_primary'] ?? '',
