@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/field_focus.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../data/database.dart';
@@ -10,6 +11,7 @@ import '../../domain/models.dart';
 import '../../domain/report_calc.dart';
 import '../../domain/report_templates.dart';
 import '../../domain/seal_range.dart';
+import '../../domain/validators.dart';
 import 'wizard_controller.dart';
 
 void _setReport(WizardController c, Report Function(Report r) f) {
@@ -42,6 +44,7 @@ class SectionCStep extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.all(16),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
       children: [
         for (final side in loadSides)
           FormSection(
@@ -57,82 +60,87 @@ class SectionCStep extends StatelessWidget {
             onChanged: (v) => _setReport(c, (r) => r.copyWith(loadType: v)),
           ),
         ),
-        FormSection(
-          title: 'Results',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InfoTable(labelWidth: 150, [
-                (
-                  'Check load ($method of phases)',
-                  computedLoad == null ? '' : '${fmtNum(computedLoad)} KW',
-                ),
-                if (r.checkLoadOverride.trim().isNotEmpty)
-                  ('Check load used', '${r.checkLoadOverride} KW (override)'),
-                for (final col in b.columns.where((x) => x.isUsed)) ...[
+        FieldAnchor(
+          id: FieldIds.withinLimit,
+          child: FormSection(
+            title: 'Results',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                InfoTable(labelWidth: 150, [
                   (
-                    '${t.column(col.role).label} instant KW',
-                    sc.instantImport[col.role] == null
-                        ? '—'
-                        : '${fmtNum(sc.instantImport[col.role])} KW  •  '
-                              'error ${fmtNum(sc.errorImport[col.role])} %',
+                    'Check load ($method of phases)',
+                    computedLoad == null ? '' : '${fmtNum(computedLoad)} KW',
                   ),
-                  if (t.isNet && sc.instantExport[col.role] != null)
+                  if (r.checkLoadOverride.trim().isNotEmpty)
+                    ('Check load used', '${r.checkLoadOverride} KW (override)'),
+                  for (final col in b.columns.where((x) => x.isUsed)) ...[
                     (
-                      '${t.column(col.role).label} export KW',
-                      '${fmtNum(sc.instantExport[col.role])} KW  •  '
-                          'error ${fmtNum(sc.errorExport[col.role])} %',
+                      '${t.column(col.role).label} instant KW',
+                      sc.instantImport[col.role] == null
+                          ? '—'
+                          : '${fmtNum(sc.instantImport[col.role])} KW  •  '
+                                'error ${fmtNum(sc.errorImport[col.role])} %',
                     ),
-                ],
-                ('Within permissible limits', within),
-              ]),
-              const SizedBox(height: 14),
-              const Text(
-                'OVERRIDES (leave empty to use the calculated values)',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: AppColors.muted,
-                ),
-              ),
-              ResponsiveFields(
-                children: [
-                  AppField(
-                    label: 'Check load (KW)',
-                    value: r.checkLoadOverride,
-                    numeric: true,
-                    onChanged: (v) =>
-                        _setReport(c, (r) => r.copyWith(checkLoadOverride: v)),
+                    if (t.isNet && sc.instantExport[col.role] != null)
+                      (
+                        '${t.column(col.role).label} export KW',
+                        '${fmtNum(sc.instantExport[col.role])} KW  •  '
+                            'error ${fmtNum(sc.errorExport[col.role])} %',
+                      ),
+                  ],
+                  ('Within permissible limits', within),
+                ]),
+                const SizedBox(height: 14),
+                const Text(
+                  'OVERRIDES (leave empty to use the calculated values)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    color: AppColors.muted,
                   ),
-                  AppField(
-                    label: '% error',
-                    value: r.percentErrorOverride,
-                    numeric: true,
-                    onChanged: (v) => _setReport(
-                      c,
-                      (r) => r.copyWith(percentErrorOverride: v),
+                ),
+                ResponsiveFields(
+                  children: [
+                    AppField(
+                      label: 'Check load (KW)',
+                      value: r.checkLoadOverride,
+                      numeric: true,
+                      onChanged: (v) => _setReport(
+                        c,
+                        (r) => r.copyWith(checkLoadOverride: v),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const Padding(
-                padding: EdgeInsets.only(top: 6, bottom: 6),
-                child: Text('Within permissible limits'),
-              ),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: '', label: Text('Auto')),
-                  ButtonSegment(value: 'yes', label: Text('Yes')),
-                  ButtonSegment(value: 'no', label: Text('No')),
-                ],
-                selected: {r.withinLimitOverride},
-                onSelectionChanged: (s) => _setReport(
-                  c,
-                  (r) => r.copyWith(withinLimitOverride: s.first),
+                    AppField(
+                      label: '% error',
+                      value: r.percentErrorOverride,
+                      numeric: true,
+                      onChanged: (v) => _setReport(
+                        c,
+                        (r) => r.copyWith(percentErrorOverride: v),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const Padding(
+                  padding: EdgeInsets.only(top: 6, bottom: 6),
+                  child: Text('Within permissible limits'),
+                ),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: '', label: Text('Auto')),
+                    ButtonSegment(value: 'yes', label: Text('Yes')),
+                    ButtonSegment(value: 'no', label: Text('No')),
+                  ],
+                  selected: {r.withinLimitOverride},
+                  onSelectionChanged: (s) => _setReport(
+                    c,
+                    (r) => r.copyWith(withinLimitOverride: s.first),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -411,6 +419,7 @@ class SectionDStep extends StatelessWidget {
         .toList();
     return ListView(
       padding: const EdgeInsets.all(16),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
       children: [
         Row(
           children: [
@@ -604,6 +613,7 @@ class _SectionEStepState extends State<SectionEStep> {
 
     return ListView(
       padding: const EdgeInsets.all(16),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
       children: [
         FormSection(
           letter: 'E',
@@ -717,6 +727,7 @@ class SectionFStep extends StatelessWidget {
     );
     return ListView(
       padding: const EdgeInsets.all(16),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
       children: [
         FormSection(
           letter: 'F',
@@ -777,6 +788,17 @@ class ReviewStep extends StatelessWidget {
   final WizardController c;
   final Future<void> Function(int step) onGoTo;
 
+  /// The wizard step of a warning: from its field, else from its section.
+  int? _stepOf(ReportWarning w) {
+    final f = w.field;
+    if (f != null) {
+      const byPrefix = {'h': 0, 'a': 1, 'b': 2, 'r': 3, 'c': 4};
+      final step = byPrefix[f.split(':').first];
+      if (step != null) return step;
+    }
+    return _sectionStep[w.section];
+  }
+
   static const _sectionStep = {
     'Header': 0,
     'Section A': 1,
@@ -791,6 +813,7 @@ class ReviewStep extends StatelessWidget {
     final b = c.bundle;
     return ListView(
       padding: const EdgeInsets.all(16),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
       children: [
         FormSection(
           title: 'Report summary',
@@ -829,32 +852,37 @@ class ReviewStep extends StatelessWidget {
                       ),
                     ),
                     for (final w in warnings)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        decoration: BoxDecoration(
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Material(
                           color: warningColor,
-                          borderRadius: BorderRadius.circular(4),
-                          border: const Border(
-                            left: BorderSide(color: warningBorder, width: 4),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(4)),
+                            side: BorderSide(color: warningBorder),
                           ),
-                        ),
-                        child: ListTile(
-                          dense: true,
-                          leading: const Icon(
-                            Icons.warning_amber,
-                            color: Color(0xFF7A5C00),
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            dense: true,
+                            leading: const Icon(
+                              Icons.warning_amber,
+                              color: Color(0xFF7A5C00),
+                            ),
+                            title: Text(
+                              w.message,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            subtitle: Text(w.section.toUpperCase()),
+                            trailing: _stepOf(w) == null
+                                ? null
+                                : const Icon(Icons.chevron_right),
+                            onTap: _stepOf(w) == null
+                                ? null
+                                : () {
+                                    // Open the step and show the exact field.
+                                    if (w.field != null) c.focus.go(w.field!);
+                                    onGoTo(_stepOf(w)!);
+                                  },
                           ),
-                          title: Text(
-                            w.message,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          subtitle: Text(w.section.toUpperCase()),
-                          trailing: _sectionStep.containsKey(w.section)
-                              ? const Icon(Icons.chevron_right)
-                              : null,
-                          onTap: _sectionStep.containsKey(w.section)
-                              ? () => onGoTo(_sectionStep[w.section]!)
-                              : null,
                         ),
                       ),
                   ],

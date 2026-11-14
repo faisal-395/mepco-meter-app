@@ -6,11 +6,24 @@ import 'report_templates.dart';
 
 /// A warning shown in the yellow banner. Warnings never block saving.
 class ReportWarning {
-  const ReportWarning(this.section, this.message);
+  const ReportWarning(this.section, this.message, {this.field});
   final String section;
   final String message;
+
+  /// The field to open when the warning is tapped (see [FieldIds]).
+  final String? field;
   @override
   String toString() => '$section: $message';
+}
+
+/// Ids of the fields a warning can point at.
+class FieldIds {
+  static const memoNo = 'h:memo_no';
+  static const visitDate = 'h:visit_date';
+  static String sectionA(String code) => 'a:$code';
+  static String meter(String role) => 'b:$role';
+  static String reading(String role, String code) => 'r:$role:$code';
+  static const withinLimit = 'c:within';
 }
 
 /// Total check of one rule in one column (null if values are missing).
@@ -33,6 +46,7 @@ List<ReportWarning> totalWarnings(ReportTemplate t, ColumnSlot c) {
         'Readings',
         '$colLabel: ${t.param(rule.total).label} ${c.readings[rule.total]} '
             'is not $a + $b (${fmtNum(chk.sum)}), difference ${fmtNum(chk.difference)}',
+        field: FieldIds.reading(c.role, rule.total),
       ),
     );
   }
@@ -54,6 +68,7 @@ List<ReportWarning> regressionWarnings(
         ReportWarning(
           'Readings',
           '$colLabel: ${_rowLabel(t, code)} ${c.readings[code]} is lower than last visit (${previous[code]})',
+          field: FieldIds.reading(c.role, code),
         ),
       );
     }
@@ -84,6 +99,7 @@ List<ReportWarning> formatWarnings(ReportTemplate t, ColumnSlot c) {
         ReportWarning(
           'Readings',
           '${t.column(c.role).label}: ${_rowLabel(t, p.code)} "$v" is not a number',
+          field: FieldIds.reading(c.role, p.code),
         ),
       );
     }
@@ -94,6 +110,7 @@ List<ReportWarning> formatWarnings(ReportTemplate t, ColumnSlot c) {
       ReportWarning(
         'Readings',
         '${t.column(c.role).label}: date "$d" is not dd-mm-yy',
+        field: FieldIds.reading(c.role, 'date'),
       ),
     );
   }
@@ -112,16 +129,36 @@ List<ReportWarning> validateReport(
   final out = <ReportWarning>[];
 
   if (r.memoNo.trim().isEmpty) {
-    out.add(const ReportWarning('Header', 'Memo No is empty'));
+    out.add(
+      const ReportWarning('Header', 'Memo No is empty', field: FieldIds.memoNo),
+    );
   }
   if (r.visitDate == null) {
-    out.add(const ReportWarning('Header', 'Visit date is empty'));
+    out.add(
+      const ReportWarning(
+        'Header',
+        'Visit date is empty',
+        field: FieldIds.visitDate,
+      ),
+    );
   }
   if ((b.sectionA['account_no'] ?? '').trim().isEmpty) {
-    out.add(const ReportWarning('Section A', 'A/C No is empty'));
+    out.add(
+      ReportWarning(
+        'Section A',
+        'A/C No is empty',
+        field: FieldIds.sectionA('account_no'),
+      ),
+    );
   }
   if (parseMf(b.mfText) == null) {
-    out.add(const ReportWarning('Section A', 'M.F is empty'));
+    out.add(
+      ReportWarning(
+        'Section A',
+        'M.F is empty',
+        field: FieldIds.sectionA('mf'),
+      ),
+    );
   }
 
   final used = b.columns.where((c) => c.isUsed).toList();
@@ -134,6 +171,7 @@ List<ReportWarning> validateReport(
         ReportWarning(
           'Section B',
           '${t.column(c.role).label}: no meter selected',
+          field: FieldIds.meter(c.role),
         ),
       );
     }
@@ -148,6 +186,7 @@ List<ReportWarning> validateReport(
       ReportWarning(
         'Section C',
         '% error is outside the permissible limit (${sc.limitText} %)',
+        field: FieldIds.withinLimit,
       ),
     );
   }
@@ -159,6 +198,7 @@ List<ReportWarning> validateReport(
         ReportWarning(
           'Readings',
           'Billing and backup instant KW differ (${fmtNum(bill)} vs ${fmtNum(bup)})',
+          field: FieldIds.reading(ColumnRole.billing, t.importInstantCode),
         ),
       );
     }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/providers.dart';
+import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../domain/settings_keys.dart';
 import 'backup_section.dart';
@@ -57,6 +58,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: const Text('Settings'),
         actions: [
           TextButton.icon(
+            style: appBarButtonStyle,
             onPressed: v == null ? null : _save,
             icon: const Icon(Icons.save),
             label: const Text('Save'),

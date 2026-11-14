@@ -41,7 +41,11 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [databaseProvider.overrideWithValue(db)],
-          child: MaterialApp.router(theme: buildTheme(), routerConfig: router),
+          child: MaterialApp.router(
+            theme: buildTheme(),
+            builder: appFrame,
+            routerConfig: router,
+          ),
         ),
       );
       await settle(tester);

@@ -149,3 +149,18 @@ ThemeData buildTheme() {
     ),
   );
 }
+
+/// Wraps every screen: keeps content (buttons, last list items, dialogs) above
+/// the phone's navigation buttons / gesture bar. Android draws apps behind that
+/// bar ("edge to edge"), so without this the bottom of screens is hidden.
+Widget appFrame(BuildContext context, Widget? child) => ColoredBox(
+  color: AppColors.paper,
+  child: SafeArea(top: false, child: child ?? const SizedBox.shrink()),
+);
+
+/// Text buttons placed in the navy app bar (white, readable).
+final appBarButtonStyle = TextButton.styleFrom(
+  foregroundColor: Colors.white,
+  disabledForegroundColor: Colors.white54,
+  textStyle: const TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w700),
+);

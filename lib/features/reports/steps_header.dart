@@ -2,11 +2,13 @@ import 'package:drift/drift.dart' show Value;
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/field_focus.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../data/database.dart';
 import '../../domain/models.dart';
 import '../../domain/report_templates.dart';
+import '../../domain/validators.dart';
 import '../consumers/consumer_form_screen.dart';
 import 'wizard_controller.dart';
 
@@ -49,6 +51,7 @@ class HeaderStep extends StatelessWidget {
     final r = c.bundle.report;
     return ListView(
       padding: const EdgeInsets.all(16),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
       children: [
         FormSection(
           title: 'Consumer & report',
@@ -86,10 +89,13 @@ class HeaderStep extends StatelessWidget {
           title: 'Memo',
           child: ResponsiveFields(
             children: [
-              AppField(
-                label: 'Memo No.',
-                value: r.memoNo,
-                onChanged: (v) => _set((r) => r.copyWith(memoNo: v)),
+              FieldAnchor(
+                id: FieldIds.memoNo,
+                child: AppField(
+                  label: 'Memo No.',
+                  value: r.memoNo,
+                  onChanged: (v) => _set((r) => r.copyWith(memoNo: v)),
+                ),
               ),
               DateField(
                 label: 'Dated',
@@ -137,10 +143,14 @@ class HeaderStep extends StatelessWidget {
                 hint: 'Mr. Abdul Hafeez (TI), Sajid Naveed (T.A)',
                 onChanged: (v) => _set((r) => r.copyWith(teamText: v)),
               ),
-              DateField(
-                label: 'Visited the premises on dated',
-                value: r.visitDate,
-                onChanged: (d) => _set((r) => r.copyWith(visitDate: Value(d))),
+              FieldAnchor(
+                id: FieldIds.visitDate,
+                child: DateField(
+                  label: 'Visited the premises on dated',
+                  value: r.visitDate,
+                  onChanged: (d) =>
+                      _set((r) => r.copyWith(visitDate: Value(d))),
+                ),
               ),
             ],
           ),
@@ -166,6 +176,7 @@ class SectionAStep extends StatelessWidget {
     final r = c.bundle.report;
     return ListView(
       padding: const EdgeInsets.all(16),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
       children: [
         const Padding(
           padding: EdgeInsets.only(bottom: 12),
@@ -254,6 +265,7 @@ class SectionBStep extends StatelessWidget {
     final t = c.bundle.template;
     return ListView(
       padding: const EdgeInsets.all(16),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
       children: [
         const Text(
           'Pick the meter for each column. Mark unused columns "Not applicable": '
@@ -261,105 +273,108 @@ class SectionBStep extends StatelessWidget {
           style: TextStyle(color: Colors.black54),
         ),
         for (final slot in c.bundle.columns)
-          FormSection(
-            title: t.column(slot.role).label,
-            action: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'N/A',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.muted,
-                  ),
-                ),
-                Switch(
-                  value: slot.notApplicable,
-                  onChanged: (v) {
-                    slot.notApplicable = v;
-                    c.changed();
-                  },
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (slot.notApplicable)
+          FieldAnchor(
+            id: FieldIds.meter(slot.role),
+            child: FormSection(
+              title: t.column(slot.role).label,
+              action: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   const Text(
-                    'Not applicable: this column is struck through on the printout.',
-                    style: TextStyle(color: AppColors.muted),
-                  ),
-                if (!slot.notApplicable) ...[
-                  DropdownButtonFormField<int?>(
-                    key: ValueKey(
-                      '${slot.role}-${slot.meter?.id}-${c.meters.length}',
+                    'N/A',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.muted,
                     ),
-                    initialValue: c.meters.any((m) => m.id == slot.meter?.id)
-                        ? slot.meter?.id
-                        : null,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Meter'),
-                    items: [
-                      const DropdownMenuItem<int?>(
-                        value: null,
-                        child: Text('— none —'),
-                      ),
-                      for (final m in c.meters)
-                        DropdownMenuItem<int?>(
-                          value: m.id,
-                          child: Text(
-                            '${m.mfgNo}  ${m.make} ${m.meterKind}${m.status == 'removed' ? '  (removed)' : ''}',
-                          ),
-                        ),
-                    ],
-                    onChanged: (id) async {
-                      slot.meter = c.meters
-                          .where((m) => m.id == id)
-                          .firstOrNull;
+                  ),
+                  Switch(
+                    value: slot.notApplicable,
+                    onChanged: (v) {
+                      slot.notApplicable = v;
                       c.changed();
-                      await c.reloadPrevious();
                     },
                   ),
-                  if (slot.meter != null) _MeterParticulars(slot.meter!),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      TextButton.icon(
-                        onPressed: () => _addMeter(context, slot),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add new meter'),
-                      ),
-                      if (slot.meter != null)
-                        TextButton.icon(
-                          onPressed: () => _editMeter(context, slot.meter!),
-                          icon: const Icon(Icons.edit),
-                          label: const Text('Edit meter'),
-                        ),
-                      if (slot.meter != null &&
-                          (slot.role == ColumnRole.removed ||
-                              slot.role == ColumnRole.backupRemoved) &&
-                          slot.meter!.status != 'removed')
-                        TextButton.icon(
-                          onPressed: () async {
-                            await c.metersDao.updateFields(
-                              slot.meter!.id,
-                              MetersCompanion(
-                                status: const Value('removed'),
-                                removedOn: Value(
-                                  c.bundle.report.visitDate ?? DateTime.now(),
-                                ),
-                              ),
-                            );
-                            await c.reloadMeters();
-                          },
-                          icon: const Icon(Icons.remove_circle_outline),
-                          label: const Text('Mark meter as removed'),
-                        ),
-                    ],
-                  ),
                 ],
-              ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (slot.notApplicable)
+                    const Text(
+                      'Not applicable: this column is struck through on the printout.',
+                      style: TextStyle(color: AppColors.muted),
+                    ),
+                  if (!slot.notApplicable) ...[
+                    DropdownButtonFormField<int?>(
+                      key: ValueKey(
+                        '${slot.role}-${slot.meter?.id}-${c.meters.length}',
+                      ),
+                      initialValue: c.meters.any((m) => m.id == slot.meter?.id)
+                          ? slot.meter?.id
+                          : null,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Meter'),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('— none —'),
+                        ),
+                        for (final m in c.meters)
+                          DropdownMenuItem<int?>(
+                            value: m.id,
+                            child: Text(
+                              '${m.mfgNo}  ${m.make} ${m.meterKind}${m.status == 'removed' ? '  (removed)' : ''}',
+                            ),
+                          ),
+                      ],
+                      onChanged: (id) async {
+                        slot.meter = c.meters
+                            .where((m) => m.id == id)
+                            .firstOrNull;
+                        c.changed();
+                        await c.reloadPrevious();
+                      },
+                    ),
+                    if (slot.meter != null) _MeterParticulars(slot.meter!),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => _addMeter(context, slot),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add new meter'),
+                        ),
+                        if (slot.meter != null)
+                          TextButton.icon(
+                            onPressed: () => _editMeter(context, slot.meter!),
+                            icon: const Icon(Icons.edit),
+                            label: const Text('Edit meter'),
+                          ),
+                        if (slot.meter != null &&
+                            (slot.role == ColumnRole.removed ||
+                                slot.role == ColumnRole.backupRemoved) &&
+                            slot.meter!.status != 'removed')
+                          TextButton.icon(
+                            onPressed: () async {
+                              await c.metersDao.updateFields(
+                                slot.meter!.id,
+                                MetersCompanion(
+                                  status: const Value('removed'),
+                                  removedOn: Value(
+                                    c.bundle.report.visitDate ?? DateTime.now(),
+                                  ),
+                                ),
+                              );
+                              await c.reloadMeters();
+                            },
+                            icon: const Icon(Icons.remove_circle_outline),
+                            label: const Text('Mark meter as removed'),
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
       ],

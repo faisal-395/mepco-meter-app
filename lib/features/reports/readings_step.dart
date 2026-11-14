@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/field_focus.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../domain/calculations.dart';
@@ -41,6 +42,15 @@ class _ReadingsStepState extends State<ReadingsStep> {
     }
   }
 
+  /// Opens the tab of the meter a tapped warning points at.
+  int _tabFor(List<ColumnSlot> cols) {
+    final t = widget.c.focus.target;
+    if (t == null || !t.startsWith('r:')) return 0;
+    final role = t.split(':')[1];
+    final i = cols.indexWhere((c) => c.role == role);
+    return i < 0 ? 0 : i;
+  }
+
   List<ColumnSlot> get _columns =>
       widget.c.bundle.columns.where((c) => !c.notApplicable).toList();
 
@@ -69,6 +79,7 @@ class _ReadingsStepState extends State<ReadingsStep> {
     if (isWide(context)) {
       return ListView(
         padding: const EdgeInsets.all(16),
+        scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
         children: [
           WarningBanner(warnings),
           _WideGrid(c: c, columns: cols),
@@ -77,6 +88,7 @@ class _ReadingsStepState extends State<ReadingsStep> {
     }
     return DefaultTabController(
       length: cols.length,
+      initialIndex: _tabFor(cols),
       child: Column(
         children: [
           TabBar(
@@ -95,6 +107,7 @@ class _ReadingsStepState extends State<ReadingsStep> {
                 for (final col in cols)
                   ListView(
                     padding: const EdgeInsets.all(16),
+                    scrollCacheExtent: const ScrollCacheExtent.pixels(100000),
                     children: [
                       WarningBanner([
                         ...totalWarnings(t, col).map((w) => w.message),
@@ -270,7 +283,12 @@ class ReadingCell extends StatelessWidget {
   final bool showLabel;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FieldAnchor(
+    id: FieldIds.reading(slot.role, param.code),
+    child: _cell(context),
+  );
+
+  Widget _cell(BuildContext context) {
     final t = c.bundle.template;
     final p = param;
     if (p.kind == ParamKind.meterNo) {
@@ -311,9 +329,12 @@ class ReadingCell extends StatelessWidget {
                   children: [
                     const Icon(Icons.check_circle, color: okColor, size: 16),
                     const SizedBox(width: 4),
-                    Text(
-                      '= ${t.isNet ? 'T-1 + T-2' : 'Peak + Off Peak'} (auto)',
-                      style: const TextStyle(color: okColor, fontSize: 13),
+                    Flexible(
+                      child: Text(
+                        '= ${t.isNet ? 'T-1 + T-2' : 'Peak + Off Peak'} (auto)',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: okColor, fontSize: 13),
+                      ),
                     ),
                   ],
                 )

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/providers.dart';
+import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../data/database.dart';
 import '../../domain/report_templates.dart';
@@ -121,6 +122,7 @@ class _MeterFormScreenState extends ConsumerState<MeterFormScreen> {
         title: Text(widget.meterId == null ? 'New meter' : 'Edit meter'),
         actions: [
           TextButton.icon(
+            style: appBarButtonStyle,
             onPressed: _loaded ? _save : null,
             icon: const Icon(Icons.save),
             label: const Text('Save'),

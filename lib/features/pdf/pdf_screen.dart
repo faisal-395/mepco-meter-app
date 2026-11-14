@@ -10,6 +10,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/providers.dart';
+import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../domain/models.dart';
 import 'report_pdf.dart';
@@ -115,6 +116,7 @@ class _PdfScreenState extends ConsumerState<PdfScreen> {
             ),
           if (widget.finalView && b != null)
             TextButton.icon(
+              style: appBarButtonStyle,
               onPressed: _duplicate,
               icon: const Icon(Icons.copy),
               label: const Text('Duplicate as new draft'),

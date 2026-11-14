@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/field_focus.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -178,74 +179,77 @@ class _ReportScreenState extends ConsumerState<ReportScreen>
             onBack: _step == 0 ? null : () => _goTo(_step - 1),
             onNext: _step == _steps.length - 1 ? null : () => _goTo(_step + 1),
           );
-          return Scaffold(
-            appBar: AppBar(
-              toolbarHeight: 64,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      letterSpacing: 1,
-                      color: AppColors.gold,
-                      fontWeight: FontWeight.w700,
+          return FieldFocusScope(
+            notifier: c.focus,
+            child: Scaffold(
+              appBar: AppBar(
+                toolbarHeight: 64,
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        letterSpacing: 1,
+                        color: AppColors.gold,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
+                    Text(
+                      c.bundle.sectionA['name'] ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+                actions: [
+                  _SaveState(saving: c.saving, dirty: c.dirty),
+                  IconButton(
+                    tooltip: 'Save',
+                    icon: const Icon(Icons.save_outlined),
+                    onPressed: c.save,
                   ),
-                  Text(
-                    c.bundle.sectionA['name'] ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  IconButton(
+                    tooltip: 'Print / PDF',
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    onPressed: () async {
+                      await c.save();
+                      if (context.mounted) {
+                        context.push('/reports/${widget.reportId}/pdf');
+                      }
+                    },
                   ),
                 ],
               ),
-              actions: [
-                _SaveState(saving: c.saving, dirty: c.dirty),
-                IconButton(
-                  tooltip: 'Save',
-                  icon: const Icon(Icons.save_outlined),
-                  onPressed: c.save,
-                ),
-                IconButton(
-                  tooltip: 'Print / PDF',
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  onPressed: () async {
-                    await c.save();
-                    if (context.mounted) {
-                      context.push('/reports/${widget.reportId}/pdf');
-                    }
-                  },
-                ),
-              ],
-            ),
-            body: wide
-                ? Row(
-                    children: [
-                      Container(
-                        width: 240,
-                        color: Colors.white,
-                        child: ListView(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          children: [
-                            for (var i = 0; i < _steps.length; i++)
-                              _StepTile(
-                                index: i,
-                                label: _steps[i].$1,
-                                letter: _steps[i].$2,
-                                selected: i == _step,
-                                done: i < _step,
-                                onTap: () => _goTo(i),
-                              ),
-                          ],
+              body: wide
+                  ? Row(
+                      children: [
+                        Container(
+                          width: 240,
+                          color: Colors.white,
+                          child: ListView(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            children: [
+                              for (var i = 0; i < _steps.length; i++)
+                                _StepTile(
+                                  index: i,
+                                  label: _steps[i].$1,
+                                  letter: _steps[i].$2,
+                                  selected: i == _step,
+                                  done: i < _step,
+                                  onTap: () => _goTo(i),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const VerticalDivider(width: 1),
-                      Expanded(child: body),
-                    ],
-                  )
-                : body,
-            bottomNavigationBar: nav,
+                        const VerticalDivider(width: 1),
+                        Expanded(child: body),
+                      ],
+                    )
+                  : body,
+              bottomNavigationBar: nav,
+            ),
           );
         },
       ),

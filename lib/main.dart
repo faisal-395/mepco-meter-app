@@ -18,6 +18,7 @@ class MeterApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: appRouter,
+      builder: appFrame,
     );
   }
 }

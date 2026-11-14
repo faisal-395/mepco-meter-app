@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/field_focus.dart';
+
 import '../../data/daos.dart';
 import '../../data/database.dart';
 import '../../domain/models.dart';
@@ -29,6 +31,9 @@ class WizardController extends ChangeNotifier {
 
   /// Column role -> readings of the same meter at the previous visit.
   Map<String, PreviousReadings?> previous = {};
+
+  /// The field to show next (a tapped warning).
+  final focus = FieldFocus();
 
   bool _dirty = false;
   bool _deleted = false;
@@ -139,6 +144,7 @@ class WizardController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _timer?.cancel();
+    focus.dispose();
     super.dispose();
   }
 }

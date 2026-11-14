@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/providers.dart';
+import '../../app/field_focus.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../domain/calculations.dart';
 import '../../domain/formatters.dart';
 import '../../domain/section_a.dart';
+import '../../domain/validators.dart';
 
 /// Editable list of section A fields. MF is auto-calculated from the CT ratio
 /// until the officer types an MF by hand.
@@ -69,7 +71,7 @@ class _SectionAEditorState extends State<SectionAEditor> {
       widget.values['ct_primary'] ?? '',
       widget.values['ct_secondary'] ?? '',
     );
-    Widget field(SectionAField f) => f.date
+    Widget rawField(SectionAField f) => f.date
         ? TextDateField(
             label: f.label,
             value: widget.values[f.code] ?? '',
@@ -89,6 +91,8 @@ class _SectionAEditorState extends State<SectionAEditor> {
                 : null,
             onChanged: (v) => _set(f.code, v),
           );
+    Widget field(SectionAField f) =>
+        FieldAnchor(id: FieldIds.sectionA(f.code), child: rawField(f));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -221,6 +225,7 @@ class _ConsumerFormScreenState extends ConsumerState<ConsumerFormScreen> {
         ),
         actions: [
           TextButton.icon(
+            style: appBarButtonStyle,
             onPressed: _values == null || _saving ? null : _save,
             icon: const Icon(Icons.save),
             label: const Text('Save'),
